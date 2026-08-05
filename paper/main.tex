@@ -515,8 +515,9 @@ mixture's closed form, and independently re-verified against the actual
 implemented solver to $10^{-6}$ precision. Figure~\ref{fig:separation} shows
 the live 10-seed computational confirmation. We flag directly that this
 separation exhibits the LP-based point estimator's failure mode specifically
-(a degenerate boundary direction under tie-breaking); we discuss whether it
-extends to MaxEnt and Bayesian IRL in \S\ref{sec:experiments}, Q3.
+(a degenerate boundary direction under tie-breaking); \S\ref{sec:experiments},
+Q3 reports that MaxEnt and Bayesian IRL do \emph{not} exhibit it on this same
+construction, and explains why.
 
 \begin{figure}[t]
   \centering
@@ -556,9 +557,23 @@ from a classical Dvoretzky--Kiefer--Wolfowitz concentration bound rather than
 the exact split-conformal quantile -- across three environments: uncorrelated
 random tabular MDPs, a region-based gridworld with spatially contiguous
 (Voronoi) reward features, and Objectworld, the standard IRL benchmark with
-smooth, continuous distance-to-object features. All experiments run on tabular
-MDPs at a scale ($|S| \leq 36$, $d \leq 5$) chosen to fit within a laptop-class
-compute budget (20 CPU cores, no GPU dependency, no commercial solver).
+smooth, continuous distance-to-object features. The headline results in Q1--Q3
+run on tabular MDPs at a scale ($|S| \leq 36$, $d \leq 5$) chosen to fit within
+a laptop-class compute budget (20 CPU cores, no GPU dependency, no commercial
+solver). To check this scale was not load-bearing for the qualitative
+conclusions, we additionally reran the full gridworld pipeline (all three
+point estimators, all three decision rules) at $|S|=225$, $d=7$ -- 6.25$\times$
+more states and 2 more reward dimensions than the headline setting -- and
+confirmed a wall-clock scaling table up to $|S|=400$, $d=8$ (fit + calibration
++ robust-solve stay under 35 seconds total per demonstrator population even at
+this largest size, on the same laptop-class budget). At $|S|=225$, Q2's
+qualitative finding is unchanged: under unbiased demonstrator noise,
+conformal-robust regret exceeds the plain point estimate's for all three
+estimators (e.g.\ LP-IRL true regret $1.03\to3.19$, MaxEnt $1.01\to2.88$,
+Bayesian $0.06\to0.36$, plain$\to$conformal), i.e.\ the insurance-cost pattern
+generalizes well past the headline scale. We still make no claim beyond
+tabular MDPs; function approximation and deep-RL/language-model settings are
+untested and may behave differently.
 
 \textbf{Q1: Coverage and efficiency.} Realized coverage
 tracks the target $\gamma$ across every environment and estimator tested
@@ -598,13 +613,26 @@ conformal-robust, and DKW-robust decision rules. MaxEnt and Bayesian IRL recover
 an accurate point direction, whereas the LP estimator has nontrivial error; in
 all three cases, conformal robustification is less conservative than DKW but
 incurs higher true-reward regret than the corresponding point policy. The same
-direction holds in Objectworld. We have not run MaxEnt or Bayesian IRL on the
-degenerate construction of Theorem~\ref{thm:separation} itself -- that
-theorem's divergence result is specific to the LP estimator's tie-breaking
-behavior at the exact optimality boundary, and we do not claim MaxEnt or
-Bayesian IRL (which are strictly interior, likelihood-based estimators)
-necessarily diverge there too; whether the separation result generalizes to
-these smoother estimators is left open. These comparisons separate two claims that are
+direction holds in Objectworld. We additionally ran MaxEnt and Bayesian IRL on
+the degenerate construction of Theorem~\ref{thm:separation} itself (population
+sizes up to $N=3000$, $u$ up to $100$, 10 seeds): neither estimator's regret
+grows with $u$; both stay at exactly zero true-reward regret across the full
+range. The mechanism is not that these estimators are simply more accurate --
+it is structural. The LP estimator's sub-optimality loss demands an
+\emph{exact} fit to every observed decision, which forces it onto the
+degenerate tie direction $\theta_u$ whenever both decision classes are present
+in the population, an event of probability $1$ as $N\to\infty$ for any
+$u<\infty$. MaxEnt and Bayesian IRL instead match an \emph{aggregate}
+statistic (expected feature counts, resp.\ a Boltzmann likelihood) that
+converges, by the law of large numbers, to a fixed point determined by the
+population's class-split probabilities $p_1(u), p_2(u)$; landing exactly on
+the tied boundary would require that aggregate to coincide with a
+measure-zero direction, which does not happen along this construction. This
+is evidence for a genuine estimator-specific property here, not merely an
+artifact of finite samples, and it narrows Theorem~\ref{thm:separation}'s
+claim honestly: the unbounded-regret failure mode is a property of exact-fit
+point estimation (of which the LP sub-optimality loss is the leading example
+in the IRL literature), not of point estimation in general. These comparisons separate two claims that are
 often conflated: conformal calibration can produce a tighter valid uncertainty
 set than a generic concentration bound, yet optimizing for its worst case need
 not improve average performance under the true reward.
@@ -643,11 +671,20 @@ relabeling of our per-demonstrator design: a ``response selection'' MDP in which
 the population is reinterpreted as RLHF annotators rather than task
 demonstrators, using the same calibration and robust-MDP code unchanged.
 Realized coverage meets or exceeds the target $\gamma$ at every level tested
-(0.947--0.994 across $\gamma \in \{0.5,0.7,0.8,0.9\}$, 8 seeds), consistent
-with Theorem~\ref{thm:coverage} and confirming the framework generalizes by
-relabeling alone; the gap above target is likely the same score-atom
-over-coverage discussed under Theorem~\ref{thm:coverage}, sharpened here by a
-small, low-dimensional annotator population, and is not a special exemption
+(0.947--0.994 across $\gamma \in \{0.5,0.7,0.8,0.9\}$, 8 seeds on the original
+6-response, 4-attribute configuration), consistent with
+Theorem~\ref{thm:coverage} and confirming the framework generalizes by
+relabeling alone. Since a single configuration and 8 seeds is thin support for
+a claim about a general property, we reran the identical pipeline, unchanged,
+across four annotator-population configurations (response counts $4$--$10$,
+attribute dimensions $3$--$6$, population sizes $15$--$60$) and 30 seeds each
+at $\gamma \in \{0.7,0.8,0.9\}$: mean coverage across all twelve
+(configuration, $\gamma$) cells ranges $0.966$--$0.991$, and the fraction of
+seeds meeting or exceeding the target $\gamma$ is at least $0.93$ in every
+cell (most at $1.0$), consistent with the marginal (not per-seed) nature of
+the conformal guarantee. The gap above target is likely the same score-atom
+over-coverage discussed under Theorem~\ref{thm:coverage}, sharpened here by
+small, low-dimensional annotator populations, and is not a special exemption
 for the RLHF framing (the same systematic-bias-conditional benefit applies).
 All experiments are at tabular scale by
 explicit design choice; we make no claim about function-approximation or

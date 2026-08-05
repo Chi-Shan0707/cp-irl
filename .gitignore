@@ -5,3 +5,10 @@ runs
 *.egg-info/
 .ipynb_checkpoints/
 *.log
+*.aux
+*.out
+*.bcf
+*.blg
+*.fls
+*.fdb_latexmk
+*.run.xml
