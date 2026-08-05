@@ -123,9 +123,10 @@ guarantees. The contributions are:
 \item \textbf{Optimization: sequential structure without state-sized calibration}
   (\S\ref{sec:method-calibration}). For a fixed demonstrator policy, the induced
   value function is \emph{linear} in the reward parameter via the Bellman
-  resolvent $(I - \beta P_\pi)^{-1}$ -- the same feasible-reward characterization
-  used by Ng \& Russell~\cite{ng2000algorithms} for reward shaping, which we
-  repurpose as a calibration-score reduction; substituting this collapses the
+  resolvent $(I - \beta P_\pi)^{-1}$ -- the same linear-in-reward value
+  identity underlying the feasible-reward characterization of Ng \&
+  Russell~\cite{ng2000algorithms}, which we repurpose as a calibration-score
+  reduction; substituting this collapses the
   per-demonstrator calibration score from a joint optimization over $(\theta, V)$
   -- size $d + |S|$ -- to an optimization over $\theta$ alone -- size $d$ -- with
   no relaxation, by the policy improvement theorem. We further give a
@@ -304,11 +305,11 @@ state-transition matrix ($P_\pi(s,s') = P(s,\pi(s),s')$), and let $\Phi_\pi \in
 \mathbb{R}^{|S|\times d}$ be the feature matrix restricted to the actions $\pi$
 takes ($\Phi_\pi(s,\cdot) = \phi(s,\pi(s))^\top$). Let
 $W_\pi := (I-\beta P_\pi)^{-1}\Phi_\pi$ (well-defined since $\beta \in [0,1)$). Then $V^\pi_\theta = W_\pi\theta$ and
-$Q^\pi_\theta(s,a) = M_\pi(s,a)^\top\theta$ with
-$M_\pi(s,a) := \phi(s,a) + \beta P(s,a,\cdot)^\top W_\pi$, both linear in
+$Q^\pi_\theta(s,a) = \Psi_\pi(s,a)^\top\theta$ with
+$\Psi_\pi(s,a) := \phi(s,a) + \beta P(s,a,\cdot)^\top W_\pi$, both linear in
 $\theta$. Consequently
 \[
-\hat\Theta(\pi) = \{\theta : \|\theta\|_2 \leq 1,\ M_\pi(s,a)^\top\theta \leq M_\pi(s,\pi(s))^\top\theta\ \ \forall s,a\},
+\hat\Theta(\pi) = \{\theta : \|\theta\|_2 \leq 1,\ \Psi_\pi(s,a)^\top\theta \leq \Psi_\pi(s,\pi(s))^\top\theta\ \ \forall s,a\},
 \]
 exactly (no relaxation), and the calibration score
 $c_k = \max_{\theta \in \hat\Theta(\pi_k)} \theta^\top\bar\theta$ is an
@@ -322,9 +323,9 @@ $V^\pi_\theta = \Phi_\pi\theta + \beta P_\pi V^\pi_\theta$, which rearranges to
 $V^\pi_\theta = (I-\beta P_\pi)^{-1}\Phi_\pi\theta$ since $I-\beta P_\pi$ is
 invertible for $\beta<1$. Substituting into $Q^\pi_\theta(s,a) =
 \phi(s,a)^\top\theta + \beta P(s,a,\cdot)^\top V^\pi_\theta$ gives the stated
-$M_\pi$. The characterization of $\hat\Theta(\pi)$ is then the policy
+$\Psi_\pi$. The characterization of $\hat\Theta(\pi)$ is then the policy
 improvement theorem's optimality condition $Q^\pi_\theta(s,a) \leq
-Q^\pi_\theta(s,\pi(s))\ \forall s,a$, rewritten using $M_\pi$.
+Q^\pi_\theta(s,\pi(s))\ \forall s,a$, rewritten using $\Psi_\pi$.
 \end{proof}
 
 We verified Proposition~\ref{prop:resolvent} against a slow joint-$(\theta,V)$
@@ -397,17 +398,18 @@ known to be NP-hard~\cite{wiesemann2013robust}.
 \section{Theory}
 \label{sec:theory}
 
-We prove four further results, each the direct MDP/IRL analogue of a
-corresponding CIO theorem, and each independently spot-checked computationally
-against the implemented solvers rather than trusted as derivation alone. The
-fifth item below (efficiency) is an empirical confirmation, not a theorem, and
-is reported as such.
+We prove three further results (coverage, regret, separation), each the direct
+MDP/IRL analogue of a corresponding CIO theorem, and each independently
+spot-checked computationally against the implemented solvers rather than
+trusted as derivation alone. A fourth item below (efficiency) is an empirical
+confirmation, not a theorem, and is reported as such.
 
 \begin{theorem}[Coverage]
 \label{thm:coverage}
-Under Assumption~\ref{ass:unit}, let $\alpha_\gamma$ be the $\lceil
-(N_{\mathrm{val}}+1)\gamma\rceil$-th smallest calibration score among
-$c_1,\dots,c_{N_{\mathrm{val}}}$ (Proposition~\ref{prop:resolvent}). Then
+Under Assumption~\ref{ass:unit}, let $\tau = \lceil(N_{\mathrm{val}}+1)\gamma\rceil$,
+let $c_{(\tau)}$ be the $\tau$-th \emph{largest} calibration score among
+$c_1,\dots,c_{N_{\mathrm{val}}}$ (Proposition~\ref{prop:resolvent}), and set
+$\alpha_\gamma := \arccos(c_{(\tau)})$. Then
 \[
 \mathbb{P}\big(\hat\Theta_{\mathrm{new}} \cap C(\bar\theta, \alpha_\gamma) \neq \emptyset\big) \geq \gamma,
 \]
@@ -415,41 +417,71 @@ where $\hat\Theta_{\mathrm{new}}$ is the new demonstrator's feasible reward
 set. \textbf{This is an intersection-nonemptiness guarantee, not a containment
 guarantee}: it does not by itself assert $\theta^*_{\mathrm{new}} \in
 C(\bar\theta,\alpha_\gamma)$, only that the calibrated cap is compatible with
-some reward for which $\pi_{\mathrm{new}}$ is optimal. The realized coverage
-concentrates around $\gamma$ at the standard split-conformal finite-sample rate
-$O(\sqrt{\log N_{\mathrm{val}}/N_{\mathrm{val}}})$.
+some reward for which $\pi_{\mathrm{new}}$ is optimal.
 \end{theorem}
 
 The proof is a line-for-line transplant of CIO's own exchangeability argument,
 applied to the scores of Proposition~\ref{prop:resolvent} in place of CIO's LP
-dual scores; exchangeability of $(\hat\theta_k,\pi_k)$ under
-Assumption~\ref{ass:unit} is what licenses treating $c_{\mathrm{new}}$ as
-exchangeable with the calibration scores. A marginal-coverage simulation
-against the actual calibration code (150 trials per $(\gamma,
+dual scores: exchangeability of $(\hat\theta_k,\pi_k)$ under
+Assumption~\ref{ass:unit} makes $c_{\mathrm{new}}$ exchangeable with the
+calibration scores, so $c_{\mathrm{new}} \geq c_{(\tau)}$ (equivalently
+$\hat\Theta_{\mathrm{new}} \cap C(\bar\theta,\alpha_\gamma) \neq \emptyset$)
+with probability at least $\tau/(N_{\mathrm{val}}+1) \geq \gamma$ by the
+standard rank argument for exchangeable sequences. A marginal-coverage
+simulation against the actual calibration code (150 trials per $(\gamma,
 N_{\mathrm{val}})$ cell) confirms coverage $\geq \gamma$ holds at every tested
 combination; because demonstrator policies are drawn from a finite set,
 repeated policies produce tied (atomic) calibration scores, which is the most
-likely source of the over-coverage we observe empirically (\S\ref{sec:experiments}).
+likely source of the over-coverage we observe empirically beyond the
+$1/(N_{\mathrm{val}}+1)$ slack the rank argument already permits
+(\S\ref{sec:experiments}).
 
 \begin{theorem}[Regret bound]
 \label{thm:regret}
-Let $\|\phi\|_{2,\infty} := \max_{s,a}\|\phi(s,a)\|_2$ and
-$\nu := \|\phi\|_{2,\infty}/(1-\beta)$, the maximum per-state-action
-feature norm scaled by the effective horizon. For the robust policy calibrated
-at level $\gamma$ against ambiguity set $C(\bar\theta,\alpha_\gamma)$, the true
-regret relative to the in-hindsight optimal policy under
-$\theta^*_{\mathrm{new}}$ is bounded, with probability at least $\gamma$, by a
-quantity of order $\nu \cdot \sin\alpha_\gamma$.
+Let $\|\phi\|_{2,\infty} := \max_{s,a}\|\phi(s,a)\|_2$,
+$\nu(\mu) := \|\Phi^\top\mu\|_2/(1-\beta) \leq \bar\nu :=
+\|\phi\|_{2,\infty}/(1-\beta)$ for any occupancy measure $\mu \in M(P)$ (a
+Lipschitz constant for $\theta \mapsto \theta^\top\Phi^\top\mu/(1-\beta)$ in
+$\theta$, via Cauchy--Schwarz), and let $\mu_{\mathrm{CIRL}}$, $\mu^*$ denote
+the occupancy measures of the robust policy and of the true optimum
+$\pi^*(\theta^*_{\mathrm{new}})$, respectively. Suppose the calibrated cap
+$C(\bar\theta,\alpha_1)$ satisfies the \emph{almost-sure-covering} condition
+$\mathbb{P}(\hat\Theta' \cap C(\bar\theta,\alpha_1) \neq \emptyset) = 1$ for a
+fresh demonstrator (strictly stronger than Theorem~\ref{thm:coverage}'s
+$\gamma$-coverage; achievable at $\alpha_1=\pi$ but then vacuous), that any two
+unit-norm rewards optimal for the same policy are within $\eta$ of each other
+(bounded feasible-set diameter), and that the population mean reward is within
+$\sigma$ of $\theta^*_{\mathrm{new}}$ in $\ell_2$. Then the true-reward regret
+of the robust policy satisfies
+\[
+\mathrm{AOG} \leq \big(2\sin\alpha_1+\eta+\sigma\big)\,\nu(\mu^*) + (\eta+\sigma)\,\nu(\mu_{\mathrm{CIRL}}),
+\]
+and substituting the uniform bound $\bar\nu$ for both $\nu(\mu^*)$ and
+$\nu(\mu_{\mathrm{CIRL}})$ gives the fully distribution-free corollary
+$\mathrm{AOG} \leq (2\sin\alpha_1+2\eta+2\sigma)\,\bar\nu$.
 \end{theorem}
 
-We verified $\nu$'s validity as a Lipschitz constant against 200 randomized
-MDPs with zero violations. We are explicit that Theorem~\ref{thm:regret} is a
-general worst-case bound, not a tight one: cross-checked against the exact
-closed-form regret derived for our degenerate construction below, the general
-bound's looseness grows with the construction's scaling parameter, from
+The proof is a three-term telescoping argument (Lipschitz continuity of
+$\theta\mapsto\theta^\top\Phi^\top\mu$, the chord-length identity
+$\|\theta-\theta'\|_2 = 2\sin(\phi/2)$ for unit vectors at angle $\phi$, and
+the robust policy's minimax optimality), re-derived from scratch for the
+MDP's $\max_\pi\min_\theta$ sign convention rather than transplanted
+line-for-line from CIO's $\min_x\max_\theta$ convention. We verified $\bar\nu$
+as a valid uniform Lipschitz constant against 200 randomized MDPs with zero
+violations, and separately verified the almost-sure-covering hypothesis and
+the bound's numeric validity by direct computation on random instances. We are
+explicit that this is a general worst-case bound, not a tight one:
+cross-checked against the exact closed-form regret derived for our degenerate
+construction below (where the almost-sure-covering condition holds already at
+$\alpha_1=0$, a special feature of that construction), the general bound's
+looseness \emph{grows} with the construction's scaling parameter -- from
 roughly 8--15$\times$ at the low end of the range tested to roughly
-390--430$\times$ at the high end -- a materially worse asymptotic gap than
-CIO's own Example 1 exhibits for its own general bound (roughly 2.3--4$\times$).
+390--430$\times$ at the high end, because the exact regret there decays to
+zero while $\eta,\sigma,\bar\nu$ converge to nonzero constants -- a
+qualitatively worse (growing, not fixed-order) gap than CIO's own Example 1
+exhibits for its own general bound (roughly 2.3--4$\times$, staying bounded
+because CIO's construction keeps a richer feasible region that does not
+saturate the same way).
 
 \begin{theorem}[Separation]
 \label{thm:separation}
@@ -457,8 +489,9 @@ There exists a single-state, two-action MDP (the sequential-decision analogue
 of CIO's degenerate Example 1, with reward features the \emph{negation} of
 CIO's original cost features) and an IRL point estimator such that: the
 point-estimate solution converges to a degenerate direction
-$\theta_u = (1,u)/\sqrt{1+u^2} \neq \theta^*$ as the scaling parameter
-$u\to\infty$, giving classical point-estimate IRL true-reward regret that grows
+$\theta_u = (1,u)/\sqrt{1+u^2} \neq \theta^*$ (a unit vector, hence on the
+boundary of the unit ball that $C(\bar\theta,\alpha)$ is a cap of) as the
+scaling parameter $u\to\infty$, giving classical point-estimate IRL true-reward regret that grows
 without bound in $u$; while the calibrated robust policy's regret is bounded
 and shrinks to zero over the same range. The robust optimum is a genuine
 mixture, with exact closed form $p^*(u) = u^2/(1+u^2)$, independent of the
