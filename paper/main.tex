@@ -1,0 +1,513 @@
+\documentclass{article}
+% NeurIPS 2026 workshop submission (double blind).
+% Switch to [sglblindworkshop] if the target workshop uses single-blind review.
+\usepackage[dblblindworkshop]{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\newcommand{\method}{CP-IRL}
+
+\title{From Inverse Optimization to Sequential Decisions:\\
+Conformal Prediction for Inverse Reinforcement Learning}
+
+\author{%
+  Author names withheld for review \\
+  Affiliation withheld for review \\
+  \texttt{email withheld for review} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Inverse reinforcement learning (IRL) is inverse optimization with a sequential
+forward problem: demonstrations reveal an unknown reward, and the recovered
+reward is subsequently optimized to prescribe a policy. This perspective exposes
+the same weakness identified by Conformal Inverse Optimization (CIO) for one-shot
+decisions: collapsing heterogeneous objectives to one point estimate can yield a
+bad downstream decision. We introduce \textbf{\method{}}, which transfers CIO's
+calibrate-then-robustify principle to Markov decision processes. From a population
+of demonstrators, \method{} conformally calibrates a set of reward parameters
+consistent with a new demonstrator and optimizes a policy against the resulting
+reward ambiguity. The sequential setting requires new machinery. We reduce each
+calibration score to a reward-dimensional convex program using the Bellman
+resolvent, and prove that a fixed transition kernel makes the robust MDP convex
+for any compact reward ambiguity set; a two-state counterexample shows that this
+property can fail when ambiguity also enters the dynamics. We establish
+finite-sample coverage, regret bounds, and a separation example in which
+point-estimate IRL has unbounded regret while \method{}'s regret vanishes.
+Experiments on random MDPs, gridworld, and Objectworld identify the method's
+scope: robustification reduces true-reward regret under systematic estimation
+bias, but incurs an insurance cost when the point estimate is merely noisy and
+approximately unbiased.
+\end{abstract}
+
+\section{Introduction}
+
+Inverse reinforcement learning (IRL) is usually introduced as a distinct
+learning problem: infer a reward from behavior, then optimize that reward to
+prescribe a policy. Viewed end to end, however, IRL is a sequential instance of
+\emph{inverse optimization}. The observed decision is a policy or trajectory,
+the latent objective is a reward function, and the forward problem is an MDP.
+This connection is more than terminology. It suggests that uncertainty about
+the recovered objective should be propagated into the downstream decision,
+rather than discarded after producing a point estimate.
+
+Conformal Inverse Optimization (CIO) formalizes exactly this idea for one-shot
+problems~\cite{lin2024conformal}. CIO replaces a single recovered objective with
+a conformally calibrated uncertainty set and optimizes robustly over that set.
+Its guarantee is finite-sample and distribution-free under exchangeability,
+and its separation example shows why the change matters: point-estimate inverse
+optimization can retain unbounded downstream regret even with unlimited data.
+The natural question motivating this paper is therefore:
+
+\begin{quote}
+\emph{Can CIO's calibrate-then-robustify principle be transferred from one-shot
+inverse optimization to inverse reinforcement learning without losing coverage
+or tractability?}
+\end{quote}
+
+We answer this question with \method{}. A population of demonstrators supplies
+the exchangeable calibration units; each observed policy defines a feasible
+reward set through Bellman optimality; split conformal prediction calibrates a
+spherical cap around any chosen IRL point estimator; and a robust MDP converts
+that calibrated reward uncertainty into a deployed policy. Thus, the conceptual
+pipeline is inherited from CIO, while the technical work lies in adapting and
+optimizing it for sequential decisions.
+
+Making the CIO template work for IRL is not a mechanical transplant. Two
+structural obstacles are specific to the sequential setting:
+
+\begin{enumerate}
+\item \textbf{The nonconformity score is no longer an LP-duality fact.} CIO's
+  per-point calibration score is computable in closed form because the forward
+  problem is a linear program and reward feasibility is characterized by LP dual
+  feasibility. In an MDP, ``this policy is optimal for this reward'' is a
+  Bellman-optimality condition, not an LP-duality condition, and computing it
+  naively requires jointly optimizing over the reward parameter \emph{and} the
+  policy's value function -- a variable count that grows with the state space.
+\item \textbf{The robust decision problem is a minimax game over policies, not
+  points.} CIO's robust forward problem is a single robust linear program. The
+  MDP analogue is a robust MDP: $\max_\pi \min_\theta$ over an ambiguity set.
+  General robust MDPs with ambiguity that couples across states are
+  NP-hard~\cite{wiesemann2013robust}; most tractable results in the literature
+  rely on \emph{rectangularity} assumptions that restrict how the adversary's
+  choice can vary across states.
+\end{enumerate}
+
+We resolve both obstacles and develop the MDP counterpart of CIO's principal
+guarantees. The contributions are:
+
+\begin{itemize}
+\item \textbf{Transfer: conformal inverse optimization for IRL.}
+  We formulate one demonstrator as one exchangeable inverse-optimization
+  instance, calibrate a reward uncertainty set through Bellman-optimal reward
+  feasibility, and establish finite-sample coverage together with perceived-
+  and true-regret bounds (\S\ref{sec:setting}--\S\ref{sec:theory}).
+\item \textbf{Optimization: sequential structure without state-sized calibration}
+  (\S\ref{sec:method-calibration}). For a fixed demonstrator policy, the induced
+  value function is \emph{linear} in the reward parameter via the Bellman
+  resolvent $(I - \gamma P_\pi)^{-1}$; substituting this collapses the
+  per-demonstrator calibration score from a joint optimization over $(\theta, V)$
+  -- size $d + |S|$ -- to an optimization over $\theta$ alone -- size $d$ -- with
+  no relaxation, by the policy improvement theorem. We further give a
+  Sherman--Morrison--Woodbury update that recomputes this resolvent in
+  $O(k^2|S| + k^3)$ rather than $O(|S|^3)$ when two demonstrators' policies
+  differ at only $k$ states, motivated by and tailored to the
+  population-of-demonstrators setting.
+\item \textbf{Tractability: a boundary between reward and dynamics ambiguity}
+  (\S\ref{sec:method-robust}). We show the robust MDP is a convex program in
+  occupancy-measure space whenever ambiguity is confined to the reward parameter
+  \emph{for any compact ambiguity set}, via a Bellman-recursion-free argument,
+  and -- new relative to the closest existing sufficiency-side result
+  (Gadot et al.~\cite{gadot2024solving}, who solve the convex $L_p$-ball case via
+  H\"older duality and policy gradient) -- we prove this is \emph{tight}: an
+  explicit two-state, two-action MDP with a one-dimensional, convex, non-product
+  ambiguity set coupling reward and transition probability breaks concavity,
+  with a hand-verifiable rational-valued Jensen violation.
+\item \textbf{Scope: robustness helps under bias, not noise alone.}
+  Our sequential analogue of CIO's separation example proves that classical
+  point-estimate IRL can have diverging regret while the calibrated policy's
+  regret vanishes. Across random MDPs, a
+  region-based gridworld, and Objectworld, we find that calibrated robust
+  hedging reduces true-reward regret specifically when the point estimate is
+  \emph{systematically} biased (as our degenerate construction manufactures),
+  and \emph{increases} regret when the estimate is merely noisy but unbiased --
+  a precise, falsifiable boundary condition for the method's benefit that we
+  report as a finding, not a limitation to be hidden.
+\end{itemize}
+
+\section{Related Work}
+
+\textbf{Inverse optimization and its calibration.} Inverse optimization
+recovers parameters of an optimization problem from observed decisions
+(Ahuja \& Orlin~\cite{ahuja2001inverse}; Chan et al.~\cite{chan2018inverse}).
+Classical formulations return a point estimate; more recent work constructs
+data-driven uncertainty sets around it (Chenreddy, Bandi \&
+Delage~\cite{chenreddy2022datadriven}; Sun, Liu \& Li~\cite{sun2023predictthencalibrate}),
+but -- as Lin, Delage \& Chan~\cite{lin2024conformal} show -- none of these give
+the specific guarantee we need: that the \emph{next} observed decision's true
+parameter is covered with a stated confidence, distribution-free. Conformal
+Inverse Optimization is the first to close this gap using split conformal
+prediction~\cite{vovk2005algorithmic}, and is the paper this work directly
+extends from one-shot decisions to MDPs.
+
+\textbf{Feasible reward sets in IRL.} A separate line of work characterizes the
+\emph{set} of rewards consistent with observed IRL data
+(Poiani et al.~\cite{poiani2024suboptimal}; Lazzati \& Metelli~\cite{lazzati2025robustness};
+Skalse et al.~\cite{skalse2022invariance}) and proves PAC-style bounds on
+recovering it, using it directly as a robust-MDP ambiguity set. This line
+shares our target object -- a feasible reward set characterized by
+Bellman-optimality constraints -- but its guarantees are PAC bounds requiring a
+generative model of demonstrator sub-optimality; ours require only
+exchangeability of demonstrators, no assumption on the \emph{process} by which
+any individual demonstrator deviates from optimality. The transfer question
+this line raises -- whether a feasible reward set identified on one MDP
+transfers to another (Schlaginhaufen \& Kamgarpour~\cite{schlaginhaufen2024towards})
+-- is a genuinely open problem for our setting that we do not attempt to close
+here (see \S\ref{sec:discussion}).
+
+\textbf{Robust MDPs and the rectangularity boundary.} Robust MDPs with
+ambiguity coupling across states are NP-hard in general
+(Wiesemann, Kuhn \& Rustem~\cite{wiesemann2013robust}); tractability is
+classically recovered via \emph{s-} or \emph{sa-rectangularity}
+(Iyengar~\cite{iyengar2005robust}; Nilim \& El Ghaoui~\cite{nilim2005robust}),
+which restricts the adversary to choose independently per state. Recent work
+extends tractable, \emph{non}-rectangular ambiguity specifically for
+reward-only uncertainty with a fixed transition kernel: Gadot et
+al.~\cite{gadot2024solving} solve the convex $L_p$-ball case exactly via
+H\"older duality and a policy-gradient method with proven convergence; Xu et
+al.'s Group-Robust MDPs~\cite{xu2026learning} handle \emph{feature-wise}
+(d-rectangular) ambiguity that couples both reward \emph{and} transition, at
+the cost of restricting to that rectangular structure. Our sufficiency result
+(\S\ref{sec:method-robust}) covers the same fixed-kernel, reward-only regime as
+Gadot et al. but for an \emph{arbitrary} compact ambiguity set (not only
+$L_p$-balls), via a direct occupancy-measure convex program rather than a
+policy-gradient method; our necessity result -- an explicit demonstration that
+convexity is lost the moment ambiguity couples into the kernel, even minimally
+-- has no counterpart in either paper.
+
+\textbf{Conformal prediction in RL-adjacent settings.} Conformal prediction has
+been used for offline-RL pessimism from Q-value or state-action-coverage
+uncertainty (UARM, Pan et al.~\cite{pan2026uncertaintyaware}), for calibrated
+intervals in infinite-horizon policy evaluation, and for modeling \emph{other
+agents' actions} as conformal prediction sets in multi-agent RL (CAMMARL,
+Gupta \& Kahou~\cite{gupta2023cammarl}) -- the last of these is explicitly
+motivated by an analogy to IRL but never calibrates a reward set. None combine
+conformal calibration with a reward vector recovered from a population of IRL
+demonstrators and a robust-MDP regret guarantee, which is the gap this paper
+closes.
+
+\textbf{Preference learning and RLHF.} Preference-based and RLHF-style learning
+fits a reward (or policy) from labeled comparisons or demonstrations, typically
+from individual expert trajectories (Christiano et al.~\cite{christiano2017deep};
+Rafailov et al.~\cite{rafailov2023direct}) or crowdsourced preference
+populations. Our per-demonstrator exchangeable-unit design (\S\ref{sec:setting})
+is structurally suited to recast ``one annotator, one calibration point'' for
+heterogeneous-preference RLHF populations, giving a coverage guarantee of the
+form ``the deployed policy is provably good for at least a $\gamma$-fraction of
+a population whose individual reward functions are never directly observed'' --
+a guarantee we are not aware of in the RLHF calibration literature -- though we
+do not run an RLHF-scale experiment here (see \S\ref{sec:discussion}).
+
+\section{Setting}
+\label{sec:setting}
+
+We now make the CIO--IRL correspondence precise. We adopt the
+population-of-demonstrators setting used throughout this work
+(formalized as Assumption IRL-1 in our coverage proof): a shared tabular MDP
+$M = (S, A, P, \beta, \phi)$ with known transition kernel $P$, discount $\beta$,
+and feature map $\phi: S \times A \to \mathbb{R}^d$ inducing reward
+$r_\theta(s,a) = \phi(s,a)^\top\theta$. A population of demonstrators draws
+perceived rewards $\hat\theta_1, \dots, \hat\theta_N \sim P_\theta$ i.i.d.\ and
+each acts optimally in $M$ under their own $\hat\theta_k$, producing an observed
+policy $\pi_k = \pi^*(\hat\theta_k)$. This is the direct MDP analogue of CIO's
+setting, in which each demonstrator plays the role of one (decision, context)
+pair -- and it is the setting under which CIO's Theorem 2's exchangeability
+argument transplants essentially verbatim (\S\ref{sec:theory}). We commit to
+this ``unit A'' design over two weaker alternatives -- per-task exchangeability
+with a single demonstrator (still exchangeable, treated as an easy corollary)
+and per-trajectory exchangeability within one demonstrator (broken by
+within-trajectory Markov dependence, and used only as an ablation) -- and are
+explicit throughout about what breaks under each relaxation.
+
+The learning task, mirroring CIO's pipeline, has three steps: (i) split the
+population into training and calibration sets; (ii) fit a point estimate
+$\bar\theta$ on the training set with any IRL method (we use and compare a
+sub-optimality-loss linear program, MaxEnt IRL, and Bayesian IRL by MCMC --
+\S\ref{sec:experiments}); (iii) calibrate a spherical-cap uncertainty set
+$C(\bar\theta, \alpha) = \{\theta : \|\theta\|_2 = 1,\ \theta^\top\bar\theta \geq
+\cos\alpha\}$ on the calibration set and solve the robust MDP
+$\max_\pi \min_{\theta \in C(\bar\theta,\alpha)} \theta^\top \mu(\pi)$ in
+occupancy-measure space, where $\mu(\pi)$ is $\pi$'s occupancy measure.
+
+\section{Method}
+
+\subsection{Tractable calibration via the Bellman resolvent}
+\label{sec:method-calibration}
+
+CIO's calibration score for a validation point $k$ is
+$c_k = \max_\theta \{\theta^\top\bar\theta : \theta \in \Theta^{\mathrm{OPT}}(\hat x_k, u_k), \|\theta\|_2 \leq 1\}$,
+where $\Theta^{\mathrm{OPT}}$ is characterized by LP dual feasibility --
+tractable because the forward problem is a linear program. In an MDP, the
+analogous feasible set for a policy $\pi$ is
+\[
+\hat\Theta(\pi) = \{\theta : \|\theta\|_2 \leq 1,\ Q^\pi_\theta(s,a) \leq Q^\pi_\theta(s, \pi(s))\ \forall s, \forall a\},
+\]
+the exact set of reward vectors for which $\pi$ is Bellman-optimal, by the
+policy improvement theorem. Computing this naively requires the joint
+optimization $\max_{\theta,V} \theta^\top\bar\theta$ subject to the
+Bellman-optimality inequalities written in terms of both $\theta$ and the a
+priori unknown value function $V$ -- a variable count of $d + |S|$.
+
+The key fact we use: for a \textbf{fixed} policy $\pi$, the policy's own induced
+value function $V^\pi_\theta$ is \emph{linear} in $\theta$, via the Bellman
+resolvent:
+\[
+\begin{aligned}
+V^\pi_\theta
+  &= (I - \beta P_\pi)^{-1} \Phi_\pi \theta =: W_\pi \theta, \\
+Q^\pi_\theta(s,a)
+  &= M_\pi(s,a)^\top\theta, \\
+M_\pi(s,a)
+  &:= \phi(s,a) + \beta P(s,a,\cdot)^\top W_\pi.
+\end{aligned}
+\]
+Substituting collapses the calibration score to
+$c_k = \max_\theta \{\theta^\top\bar\theta : \|\theta\|_2 \leq 1,\ M_\pi(s,a)^\top\theta \leq M_\pi(s,\pi(s))^\top\theta\ \forall s,a\}$
+-- an optimization over $\theta$ alone (size $d$), with $M_\pi$ precomputed once
+per distinct policy via a single resolvent solve. This is exact, not a
+relaxation: the reduction is a direct consequence of the policy improvement
+theorem, verified against a slow joint-$(\theta,V)$ reference implementation to
+solver precision across randomized instances, and against independent value
+iteration. The amortized speedup over the joint formulation grows with $|S|$
+(2--5.5$\times$ observed at $|S|$ in the low hundreds). When a new
+demonstrator's policy differs from an already-resolved one at only $k$ states,
+the resolvent updates via a Sherman--Morrison--Woodbury identity in
+$O(k^2|S|+k^3)$ rather than a fresh $O(|S|^3)$ solve.
+
+\subsection{A tight tractability boundary for the robust MDP}
+\label{sec:method-robust}
+
+The robust decision problem, $\max_\pi \min_{\theta \in C} \theta^\top\mu(\pi)$,
+is a minimax game over policies. We work in occupancy-measure space: $M(P)$
+denotes the (fixed, since $P$ is known) polytope of achievable occupancy
+measures, and the robust objective is
+$\max_{d \in M(P)} \min_{\theta \in C} \theta^\top\Phi^\top d$.
+
+\textbf{Sufficiency.} For \emph{any} nonempty compact ambiguity set
+$C \subseteq \mathbb{R}^d$ -- not only the spherical cap --
+$g_C(x) := \min_{\theta \in C} \theta^\top x$ is a pointwise infimum of affine
+functions of $x$, hence concave, regardless of $C$'s shape; composing with the
+linear map $d \mapsto \Phi^\top d$ preserves concavity; and $M(P)$ is a fixed
+compact polytope. The robust MDP is therefore a \textbf{convex program}, solved
+without any Bellman recursion or rectangularity assumption -- the ambiguity
+never touches the feasible set $M(P)$, only the objective.
+
+\textbf{Failure beyond reward-only ambiguity.} The sufficiency argument depends
+critically on keeping the transition kernel fixed. We exhibit a 2-state,
+2-action MDP with a convex, one-dimensional, \emph{non-product} ambiguity set
+coupling reward $\theta(t) = 1+t$ and transition probability $q(t) = 1-t$ for
+$t \in [0,1]$. The induced worst-case value, as a function of the agent's
+(scalar, single-dimensional) policy parameter $p \in [0,1]$, is
+$W(p) = p(1+t)/(1-\beta p q(t))$ minimized over $t$; a closed-form derivation
+gives an explicit, hand-verifiable, rational-valued Jensen violation:
+$W(5/18) = 10/27 \approx 0.370 < \frac{1}{2}[W(0)+W(5/9)] \approx 0.556$,
+independently reproduced via numerical optimization rather than only the
+closed-form derivation. The coupling required to break convexity is minimal --
+a single scalar $t$ linking reward and transition ambiguity along a line
+segment, far short of a fully unconstrained non-rectangular adversary.
+
+\section{Theory}
+\label{sec:theory}
+
+We prove five further results, each the direct MDP/IRL analogue of a
+corresponding CIO theorem, and each independently spot-checked computationally
+against the implemented solvers rather than trusted as derivation alone.
+
+\textbf{Coverage.} For the calibrated angle $\alpha_\gamma$ from Theorem 1's
+construction, $\mathbb{P}(\hat\Theta_{\mathrm{new}} \cap C(\bar\theta, \alpha_\gamma) \neq \emptyset) \geq \gamma$,
+with the standard split-conformal finite-sample concentration bound
+$O(\sqrt{\log N_{\mathrm{val}} / N_{\mathrm{val}}})$ on how close the realized
+coverage is to $\gamma$. The proof is a line-for-line transplant of CIO's own
+exchangeability argument. A marginal-coverage simulation against the actual
+calibration code (150 trials per $(\gamma, N_{\mathrm{val}})$ cell) confirms
+coverage $\geq \gamma$ holds cleanly at every tested combination.
+
+\textbf{Regret bounds.} We derive the occupancy-measure Lipschitz constant
+governing how much the value function can change under a bounded reward
+perturbation, $\nu(d) = \|\Phi^\top d\|_2/(1-\beta) \leq \|\phi\|_{2,\infty}/(1-\beta)$
+(the maximum per-state-action feature norm, verified against 200 randomized
+MDPs with zero violations), and use it to prove the direct analogue of CIO's
+Theorem 3. We are explicit that this is a general worst-case bound, not a tight
+one: cross-checked against the exact closed-form regret derived for our
+degenerate construction, the general bound's looseness grows with the
+construction's scaling parameter, from roughly 8--15$\times$ at the low end of
+the range tested to roughly 390--430$\times$ at the high end -- a materially
+worse asymptotic gap than CIO's own Example 1 exhibits for its own general bound
+(roughly 2.3--4$\times$).
+
+\textbf{Separation.} We construct the direct sequential-decision analogue of
+CIO's degenerate Example 1: a single-state, two-action MDP whose reward
+features are the \emph{negation} of CIO's original cost features. We prove the
+point-estimate IRL solution converges to a degenerate direction
+$\theta_u = (1,u)/\sqrt{1+u^2}$, not the true $\theta^*$, and that this makes
+classical IRL's true-reward regret grow unboundedly as the scaling parameter
+$u \to \infty$, while the calibrated robust policy's regret is bounded and
+shrinks to zero. This reduced two-action MDP's robust optimum is a genuine
+\emph{mixture}, with exact closed form $p^*(u) = u^2/(1+u^2)$, independent of
+the calibration angle -- derived via Sion's minimax theorem and independently
+re-verified against the actual implemented solver to $10^{-6}$ precision.
+Figure~\ref{fig:separation} shows the live 10-seed computational confirmation.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.6\linewidth]{figures/fig1_separation.pdf}
+  \caption{Separation result (\S\ref{sec:theory}): true-reward regret vs.\ the
+  scaling parameter $u$, log scale, 10 seeds, shaded regions show $\pm 1$ std.
+  Classic IRL's regret (orange) grows monotonically and without bound; \method{}'s
+  regret (blue) shrinks monotonically toward zero over the same range. Variance
+  grows with $u$ for both curves, consistent with tie-breaking sensitivity as
+  $\bar\theta$ approaches the exact degenerate boundary.}
+  \label{fig:separation}
+\end{figure}
+
+\textbf{Efficiency.} We confirm, empirically, that the calibrated set is not
+vacuously wide: with a \emph{unified} noise parameter controlling all sources of
+demonstrator population variation simultaneously, the calibrated angle shrinks
+monotonically from $27.7^\circ$ to effectively $0^\circ$ as demonstrator-population
+noise vanishes.
+
+\section{Experiments}
+\label{sec:experiments}
+
+Our experiments answer three questions: \emph{(Q1)} does calibration attain its
+target coverage without becoming vacuous; \emph{(Q2)} when does robustification
+improve downstream regret; and \emph{(Q3)} are the conclusions tied to one IRL
+estimator or environment? We evaluate three point estimators -- a
+sub-optimality-loss linear program,
+MaxEnt IRL, and Bayesian IRL (Metropolis--Hastings posterior mean under a
+Boltzmann-rational demonstrator likelihood) -- each combined with three
+decision rules -- the plain point estimate, our calibrated robust policy, and a
+``concentration baseline'' robust policy whose uncertainty-set radius comes
+from a classical Dvoretzky--Kiefer--Wolfowitz concentration bound rather than
+the exact split-conformal quantile -- across three environments: uncorrelated
+random tabular MDPs, a region-based gridworld with spatially contiguous
+(Voronoi) reward features, and Objectworld, the standard IRL benchmark with
+smooth, continuous distance-to-object features. All experiments run on tabular
+MDPs at a scale ($|S| \leq 36$, $d \leq 5$) chosen to fit within a laptop-class
+compute budget (20 CPU cores, no GPU dependency, no commercial solver).
+
+\textbf{Q1: Coverage and efficiency.} Realized coverage
+tracks the target $\gamma$ across every environment and estimator tested
+(e.g.\ $\sim$0.88--0.89 at $\gamma=0.8$ on the gridworld), and the calibrated
+angle responds monotonically and sensibly to $\gamma$, to demonstrator noise,
+and to the train/calibration split ratio. The DKW concentration baseline is
+consistently and measurably looser than exact conformal calibration at matched
+nominal confidence, across every estimator and every environment tested.
+
+\textbf{Q2: The benefit depends on systematic bias.} On our degenerate
+construction (\S\ref{sec:theory}), robust hedging dramatically reduces
+true-reward regret, because the point estimate there is \emph{systematically}
+miscalibrated by construction. On all three generic environments tested --
+random MDPs, the gridworld, and Objectworld -- under realistic
+demonstrator-population noise, robust hedging \emph{increases} true-reward
+regret relative to the plain point estimate, consistently across all three
+point estimators, holding across a full sweep of the coverage target $\gamma$
+and of the train/calibration split ratio. We verified this is not an
+implementation defect three independent ways: the robust solver's reported
+worst-case value matches an independent second-order-cone-program oracle to
+solver precision; the robust decision's worst-case value is confirmably
+\emph{better} than the plain estimate's worst-case value over the same
+calibrated set; and we directly measured that these environments' optimal
+policies are sensitive to reward direction -- a $14^\circ$ reward perturbation
+already changes the optimal action at roughly 10--13\% of states across the
+three environments tested (9.6\% Objectworld, 9.9\% gridworld, 13.1\% random
+MDPs -- a modest, not dramatic, margin). Critically, Objectworld's lower policy-sensitivity
+(measured directly, and lower than both the gridworld and random MDPs) did
+\textbf{not} flip the result: robust hedging still costs true-reward regret
+there, ruling out landscape smoothness as the deciding factor and leaving
+systematic bias in the point estimate as the consistent, mechanistically
+understood explanation across all three environments.
+
+\textbf{Q3: The conclusion persists across estimators and environments.}
+The gridworld comparison combines all three point estimators with the plain,
+conformal-robust, and DKW-robust decision rules. MaxEnt and Bayesian IRL recover
+an accurate point direction, whereas the LP estimator has nontrivial error; in
+all three cases, conformal robustification is less conservative than DKW but
+incurs higher true-reward regret than the corresponding point policy. The same
+direction holds in Objectworld. These comparisons separate two claims that are
+often conflated: conformal calibration can produce a tighter valid uncertainty
+set than a generic concentration bound, yet optimizing for its worst case need
+not improve average performance under the true reward.
+
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+\textbf{When does \method{} help, precisely?} Our theory proves the method
+dominates classical point-estimate IRL when the point estimate is
+\emph{systematically} biased. Our experiments show that on generic environments
+with unbiased-but-noisy point estimates, it does not, and in fact costs regret
+in exchange for a worst-case guarantee that is real (independently verified)
+but not free. This is a precise, falsifiable scope condition, not a hedge: the
+method should be deployed when there is reason to believe point estimation is
+subject to a genuine structural bias rather than applied by default whenever
+demonstration data is merely noisy. Characterizing which real-world settings
+exhibit this kind of systematic bias, and whether it can be diagnosed from data
+without knowing the ground truth, is an open problem this paper does not
+resolve.
+
+\textbf{What is not yet established.} The general-case regret bound is provably
+loose -- up to several hundred-fold on the one instance where we can compare it
+against an exact result -- and should be read as a worst-case guarantee, not a
+predictor of typical-case performance. A source-to-target probe further shows
+that a reward set calibrated on one MDP does \emph{not} safely transfer to a
+related MDP with different dynamics: at target coverage $0.8$, changing the
+gridworld slip probability from $0.10$ to $0.15$ lowers mean target coverage to
+$0.567$ over eight seeds. The probe establishes the failure of naive transfer,
+not its remedy. Developing a weighted-conformal correction that combines
+covariate-shift weighting with the principal-angle transferability conditions
+of Schlaginhaufen \& Kamgarpour~\cite{schlaginhaufen2024towards} remains future
+work. We also tested a preference-population/RLHF-style
+relabeling of our per-demonstrator design: a ``response selection'' MDP in which
+the population is reinterpreted as RLHF annotators rather than task
+demonstrators, using the same calibration and robust-MDP code unchanged. The
+coverage guarantee transfers exactly as claimed -- realized coverage exceeds the
+target $\gamma$ at every level tested (0.947--0.994 across
+$\gamma \in \{0.5,0.7,0.8,0.9\}$, 8 seeds) -- confirming the framework
+generalizes by relabeling alone, at the cost of the same limitations documented
+elsewhere (degenerate low-dimensional calibration geometry in this simple
+construction; the same systematic-bias-conditional benefit, not a special
+exemption for the RLHF framing). All experiments are at tabular scale by
+explicit design choice; we make no claim about function-approximation or
+deep-RL/language-model settings.
+
+\section{Conclusion}
+
+IRL is inverse optimization with an MDP as its forward problem. Starting from
+this connection, we transfer CIO's calibrate-then-robustify principle to reward
+learning and supply the sequential machinery the transfer requires: a
+resolvent-based calibration score, a convex robust-MDP formulation for compact
+reward ambiguity, and coverage, regret, and separation guarantees. The same
+connection also clarifies the method's limits. Calibration certifies uncertainty;
+it does not make worst-case optimization free. In our experiments, the resulting
+policy improves true-reward regret when point estimation is systematically biased,
+but pays an insurance cost when estimation is merely noisy. This distinction is
+the practical conclusion of \method{} and the main condition governing its use.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

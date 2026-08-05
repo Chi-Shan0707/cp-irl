@@ -1,0 +1,142 @@
+\begin{thebibliography}{19}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ahuja and Orlin(2001)]{ahuja2001inverse}
+Ravindra~K. Ahuja and James~B. Orlin.
+\newblock Inverse optimization.
+\newblock \emph{Operations Research}, 49\penalty0 (5):\penalty0 771--783, 2001.
+\newblock \doi{10.1287/opre.49.5.771.10607}.
+
+\bibitem[Chan et~al.(2018)Chan, Lee, and Terekhov]{chan2018inverse}
+Timothy C.~Y. Chan, Taewoo Lee, and Daria Terekhov.
+\newblock Inverse optimization: Closed-form solutions, geometry, and goodness
+  of fit.
+\newblock \emph{Management Science}, 65\penalty0 (3):\penalty0 1115--1135,
+  2018.
+\newblock \doi{10.1287/mnsc.2017.2992}.
+
+\bibitem[Chenreddy et~al.(2022)Chenreddy, Bandi, and
+  Delage]{chenreddy2022datadriven}
+Abhilash~Reddy Chenreddy, Nymisha Bandi, and Erick Delage.
+\newblock Data-driven conditional robust optimization.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2022.
+
+\bibitem[Christiano et~al.(2017)Christiano, Leike, Brown, Martic, Legg, and
+  Amodei]{christiano2017deep}
+Paul~F. Christiano, Jan Leike, Tom Brown, Miljan Martic, Shane Legg, and Dario
+  Amodei.
+\newblock Deep reinforcement learning from human preferences.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, pages 4299--4307, 2017.
+
+\bibitem[Gadot et~al.(2024)Gadot, Derman, Kumar, Elfatihi, Levy, and
+  Mannor]{gadot2024solving}
+Uri Gadot, Esther Derman, Navdeep Kumar, Maxence Elfatihi, Kfir Levy, and Shie
+  Mannor.
+\newblock Solving non-rectangular reward-robust mdps via frequency
+  regularization.
+\newblock In \emph{Proceedings of the AAAI Conference on Artificial
+  Intelligence}, volume~38, pages 21090--21098, 2024.
+
+\bibitem[Gupta and Kahou(2023)]{gupta2023cammarl}
+Nikunj Gupta and Samira~Ebrahimi Kahou.
+\newblock Cammarl: Conformal action modeling in multi agent reinforcement
+  learning.
+\newblock \emph{arXiv preprint arXiv:2306.11128}, 2023.
+
+\bibitem[Iyengar(2005)]{iyengar2005robust}
+Garud~N. Iyengar.
+\newblock Robust dynamic programming.
+\newblock \emph{Mathematics of Operations Research}, 30\penalty0 (2):\penalty0
+  257--280, 2005.
+\newblock \doi{10.1287/moor.1040.0129}.
+
+\bibitem[Lazzati and Metelli(2025)]{lazzati2025robustness}
+Filippo Lazzati and Alberto~Maria Metelli.
+\newblock Robustness in the face of partial identifiability in reward learning.
+\newblock \emph{arXiv preprint arXiv:2501.06376}, 2025.
+
+\bibitem[Lin et~al.(2024)Lin, Delage, and Chan]{lin2024conformal}
+Bo~Lin, Erick Delage, and Timothy C.~Y. Chan.
+\newblock Conformal inverse optimization.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2024.
+
+\bibitem[Nilim and El~Ghaoui(2005)]{nilim2005robust}
+Arnab Nilim and Laurent El~Ghaoui.
+\newblock Robust control of markov decision processes with uncertain transition
+  matrices.
+\newblock \emph{Operations Research}, 53\penalty0 (5):\penalty0 780--798, 2005.
+
+\bibitem[Pan et~al.(2026)Pan, Yang, Li, Sun, Lu, Wang, Shen, Lu, Chu, and
+  Wang]{pan2026uncertaintyaware}
+Licheng Pan, Haocheng Yang, Haoxuan Li, Yichen Sun, Yunsheng Lu, Shijian Wang,
+  Lei Shen, Yuan Lu, Zhixuan Chu, and Hao Wang.
+\newblock Uncertainty-aware reward modeling for stable rlhf.
+\newblock \emph{arXiv preprint arXiv:2606.19818}, 2026.
+
+\bibitem[Poiani et~al.(2024)Poiani, Curti, Metelli, and
+  Restelli]{poiani2024suboptimal}
+Riccardo Poiani, Gabriele Curti, Alberto~Maria Metelli, and Marcello Restelli.
+\newblock Sub-optimal experts mitigate ambiguity in inverse reinforcement
+  learning.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, pages 85778--85823, 2024.
+
+\bibitem[Rafailov et~al.(2023)Rafailov, Sharma, Mitchell, Ermon, Manning, and
+  Finn]{rafailov2023direct}
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher~D.
+  Manning, and Chelsea Finn.
+\newblock Direct preference optimization: Your language model is secretly a
+  reward model.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, pages 53728--53741, 2023.
+
+\bibitem[Schlaginhaufen and Kamgarpour(2024)]{schlaginhaufen2024towards}
+Andreas Schlaginhaufen and Maryam Kamgarpour.
+\newblock Towards the transferability of rewards recovered via regularized
+  inverse reinforcement learning.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, pages 21461--21501, 2024.
+
+\bibitem[Skalse et~al.(2022)Skalse, Farrugia-Roberts, Russell, Abate, and
+  Gleave]{skalse2022invariance}
+Joar Skalse, Matthew Farrugia-Roberts, Stuart Russell, Alessandro Abate, and
+  Adam Gleave.
+\newblock Invariance in policy optimisation and partial identifiability in
+  reward learning.
+\newblock \emph{arXiv preprint arXiv:2203.07475}, 2022.
+\newblock Also published at ICML 2023, PMLR vol. 202, pp. 32033--32058.
+
+\bibitem[Sun et~al.(2023)Sun, Liu, and Li]{sun2023predictthencalibrate}
+Chunlin Sun, Linyu Liu, and Xin Li.
+\newblock Predict-then-calibrate: A new perspective of robust contextual lp.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2023.
+
+\bibitem[Vovk et~al.(2005)Vovk, Gammerman, and Shafer]{vovk2005algorithmic}
+Vladimir Vovk, Alexander Gammerman, and Glenn Shafer.
+\newblock \emph{Algorithmic Learning in a Random World}.
+\newblock Springer, 2005.
+\newblock ISBN 978-0387001524.
+
+\bibitem[Wiesemann et~al.(2013)Wiesemann, Kuhn, and
+  Rustem]{wiesemann2013robust}
+Wolfram Wiesemann, Daniel Kuhn, and Ber\c{c} Rustem.
+\newblock Robust markov decision processes.
+\newblock \emph{Mathematics of Operations Research}, 38\penalty0 (1):\penalty0
+  153--183, 2013.
+\newblock \doi{10.1287/moor.1120.0566}.
+
+\bibitem[Xu et~al.(2026)Xu, Xia, Cai, Zhou, and Si]{xu2026learning}
+Mingyuan Xu, Zongqi Xia, Tianxi Cai, Doudou Zhou, and Nian Si.
+\newblock Learning sequential decisions from multiple sources via group-robust
+  markov decision processes.
+\newblock \emph{arXiv preprint arXiv:2602.01825}, 2026.
+
+\end{thebibliography}
