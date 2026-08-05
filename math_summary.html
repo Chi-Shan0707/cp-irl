@@ -618,6 +618,17 @@
 
         <h3 id="sec2-4">2.4 经典几何反例 (Example 1) 的严格手算推导</h3>
         <p>为了直观说明为什么点估计会失败，论文设计了一个精妙的二维线性规划反例：</p>
+
+        <div class="box">
+            <div class="box-title">凸几何预备：极点 (Extreme Point) 与极射线 (Extreme Ray)</div>
+            <p>这两个概念分别是<strong>有界凸集</strong>与<strong>无界凸锥</strong>的"生成元"，是理解 Example 1 为何能把"整个连续可行域/参数域"的分析压缩成"比较少数几个候选"的根本原因。</p>
+            <p><strong>极点</strong>：凸集 $S$ 中的点 $x$ 称为极点，当且仅当它不能写成 $S$ 中两个不同点的非平凡凸组合：</p>
+            $$x = \lambda y + (1-\lambda) z, \; y,z \in S, \; \lambda \in (0,1) \implies y = z = x$$
+            <p>直观地说，极点是凸集"棱角分明的顶点"——无法被集合内其它两点夹在中间的点。对多面体而言，极点就是几何意义上的顶点，例如本例梯形可行域的 $x_1,x_2,x_3,x_4$。这之所以重要，是因为<strong>线性规划的最优解必在某个极点取得</strong>（LP 基本定理），所以 Example 1 的分析只需比较四个顶点谁的（最坏情况）目标值最小，而不必考虑整个连续可行域。</p>
+            <p><strong>极射线</strong>：是极点概念在无界凸锥上的类比。凸锥 $K$ 中形如 $\{\lambda v : \lambda \ge 0\}$ 的射线称为极射线，当且仅当它不能被分解为锥内两条不同射线上点的正组合；直观上，它是锥的"边界生成方向"，锥内任意向量都可以写成极射线方向的非负组合。本例中参数集合 $\Theta = \{(\cos\delta,\sin\delta) \mid \delta \in (0,\pi/2)\}$ 撑起第一象限里的一个二维扇形锥，它的两条极射线正是 $\delta \to 0^+$（方向 $(1,0)$）与 $\delta \to (\pi/2)^-$（方向 $(0,1)$），即后文图示中的两条灰色边界箭头——整个扇形内任意方向的 $\theta$ 都是这两条极射线方向的凸组合。</p>
+            <p style="margin-bottom:0;"><strong>关于 $\theta$ 只需关心方向：</strong>由于目标函数是线性的 $f(\theta,x)=\theta^\top x$，对任意 $\beta>0$ 都有 $\arg\min_x \theta^\top x = \arg\min_x (\beta\theta)^\top x$，即最优解只由 $\theta$ 的<strong>方向</strong>决定，与其模长无关——这正是论文里把所有 $\theta$ 限制在单位球面 $\|\theta\|_2=1$ 上、把 $d$ 维参数简化为一个纯方向信号的原因。$\theta$ 是自由向量，图上把它的起点画在原点或某个顶点上，只是为了直观展示"等高线推进方向"，不代表它"属于"某个顶点。</p>
+        </div>
+
         <div class="counterexample">
             <p><strong>Example 1 模型设定：</strong></p>
             $$\begin{aligned}
@@ -629,18 +640,38 @@
             <p>假设真实参数 $\theta^* = (\cos(\pi/4), \sin(\pi/4)) = (\frac{\sqrt{2}}{2}, \frac{\sqrt{2}}{2})$。决策者感知的 $\hat{\theta} = (\cos\delta, \sin\delta)$，其中角度 $\delta \sim U(0, \pi/2)$ 均匀分布。</p>
         </div>
 
+        <div class="box">
+            <div class="box-title">几何直觉：论文 Figure 2 怎么看</div>
+            <p>把图中的视觉元素与数学对象对照起来，看图的逻辑链就非常清楚：</p>
+            <table>
+                <thead><tr><th>图中元素</th><th>数学含义</th></tr></thead>
+                <tbody>
+                    <tr><td>灰色梯形区域</td><td>可行域 $\mathcal{X}(u)$，四个顶点 $x_1,x_2,x_3,x_4$</td></tr>
+                    <tr><td>黑色箭头</td><td>真实参数 $\theta^*=(\cos\frac{\pi}{4},\sin\frac{\pi}{4})$，方向 $45^\circ$</td></tr>
+                    <tr><td>灰色箭头</td><td>参数扇形锥 $\Theta$ 的两条极射线（边界方向 $\delta\to0^+$ 与 $\delta\to(\pi/2)^-$）</td></tr>
+                    <tr><td>黑色圆点</td><td>$\text{FO}(\theta^*,u)$ 的最优解，即真实参数下应做出的决策 $x_1=(0,1)$</td></tr>
+                    <tr><td>蓝色箭头/圆点</td><td>经典 IO 的点估计 $\bar\theta_N \to \theta_u$，以及它在退化长边上"随机乱选"的推荐决策</td></tr>
+                    <tr><td>绿色弧形区域/圆点</td><td>CIO 校准出的不确定性集 $\mathcal{C}(\bar\theta,\alpha)$，以及 RFO 在此集合下求出的鲁棒决策，稳定命中 $x_1=(0,1)$</td></tr>
+                </tbody>
+            </table>
+            <p>核心逻辑链（五步）：① LP 最优解只需在四个极点里比较；② 随 $\delta$ 从 $0$ 增大到 $\pi/2$，最优顶点在临界角 $\delta_u$ 处从 $x_1$ 跳变到 $x_3$——目标函数连续但最优解不连续；③ 次优性损失点估计恰好收敛到这个病态跳变点 $\theta_u$，而非真实的 $\theta^*$；④ 在 $\theta_u$ 处整条长边 $x_1+ux_2=u$ 同时最优，经典 IO 在边上乱选，AOG 随 $u\to\infty$ 发散；⑤ CIO 以 $\bar\theta$ 为中心校准出弧形不确定集，做最坏情况鲁棒优化，因为要"防守"整个弧形范围，最终稳定落在顶点 $x_1=(0,1)$——恰好是真实最优解，AOG 归零。</p>
+        </div>
+
         <div class="proof">
             <div class="proof-title">手算推导 1：经典 IO 的崩溃</div>
-            <p>切割临界角 $\delta_u := \arccos(1/\sqrt{1+u^2})$。分析可知：</p>
+            <p>切割临界角 $\delta_u := \arccos(1/\sqrt{1+u^2})$，对应方向 $\theta_u = \left(\frac{1}{\sqrt{1+u^2}}, \frac{u}{\sqrt{1+u^2}}\right)$，它恰好<strong>垂直于</strong>约束边 $x_1+ux_2=u$。分析可知：</p>
             <ul>
                 <li>当 $\delta \in (0, \delta_u]$ 时，最优决策为 $x_1 = (0,1)$；</li>
                 <li>当 $\delta \in (\delta_u, \pi/2)$ 时，最优决策为 $x_3 = (u,0)$。</li>
             </ul>
-            <p>使用次优性损失求解点估计 $\bar{\theta}_N$。当样本量 $N \to \infty$ 时，期望损失在极限点 $\theta_u = \left( \frac{1}{\sqrt{1+u^2}}, \frac{u}{\sqrt{1+u^2}} \right)$ 处取得唯一极小值 0！</p>
-            <p>因此 $\bar{\theta}_N \xrightarrow{p} \theta_u$。而对于参数 $\theta_u$，包含约束 $x_1 + u x_2 = u$ 的整个线段上的所有点都是最优解！经典 IO 的决策策略 $\bar{x}_{\text{IO}}(u)$ 会在线段上均匀采样。</p>
+            <p>于是数据集中只会观测到两类决策：$\hat{x}=(0,1)$（出现概率 $p_1 = \frac{2\delta_u}{\pi}$）和 $\hat{x}=(u,0)$（概率 $p_2=1-\frac{2\delta_u}{\pi}$）。对每一类观测点，把次优性损失 $\ell_S(\hat{x},\theta) = f(\theta,\hat{x}) - \min_x f(\theta,x)$ 写成关于 $\theta=(\cos\delta,\sin\delta)$ 的分段函数：</p>
+            $$l_1(\theta) := \ell_S\big((0,1),\theta\big) = \begin{cases} 0, & \delta \le \delta_u \;(\text{此时 } (0,1) \text{ 本就最优}) \\ \theta_2 - u\theta_1, & \delta > \delta_u \;(\text{此时最优解是 } (u,0)) \end{cases}$$
+            $$l_2(\theta) := \ell_S\big((u,0),\theta\big) = \begin{cases} u\theta_1 - \theta_2, & \delta \le \delta_u \;(\text{此时最优解是 } (0,1)) \\ 0, & \delta > \delta_u \;(\text{此时 } (u,0) \text{ 本就最优}) \end{cases}$$
+            <p>经典 IO 求解 $\min_\theta \left[\frac{N_1}{N} l_1(\theta) + \frac{N_2}{N} l_2(\theta)\right]$。由于 $\delta_u \in (0,\pi/2)$ 且 $\delta \sim U(0,\pi/2)$，大数定律保证当 $N\to\infty$ 时数据集里 $N_1>0$ 个 $(0,1)$ 和 $N_2>0$ 个 $(u,0)$ 同时存在（概率 $\to 1$）。两个损失都 $\ge 0$，总损失的下界为 $0$；要同时让 $l_1(\theta)=0$ 且 $l_2(\theta)=0$，唯一可能是 $\theta_2-u\theta_1=0$，即 $\theta=\theta_u$——这就是唯一能"同时完美解释"两类矛盾观测的点。因此 $\bar{\theta}_N \xrightarrow{p} \theta_u$（这就是 Lemma 1）。</p>
+            <p>而对于参数 $\theta_u$，包含约束 $x_1 + u x_2 = u$ 的整个线段上的所有点都是最优解（因为 $\theta_u$ 恰好垂直于这条边，等高线与约束边重合）！经典 IO 的决策策略 $\bar{x}_{\text{IO}}(u)$ 会在线段上均匀采样。</p>
             <p>计算真实次优性间隙 $\text{AOG}$：</p>
             $$\text{AOG}(\bar{x}_{\text{IO}}) = \int_0^{\sqrt{u^2+1}} \left[ \frac{\sqrt{2}}{2}\left( \frac{ut}{\sqrt{u^2+1}} + 1 - \frac{t}{\sqrt{u^2+1}} \right) \right] dt - \frac{\sqrt{2}}{2} = \frac{\sqrt{2}(u-1)}{4}$$
-            <p>当参数 $u \to \infty$ 时，$\text{AOG}(\bar{x}_{\text{IO}}) \to \infty$！<strong>点估计策略的真实间隙发散！</strong></p>
+            <p>当参数 $u \to \infty$ 时，$\text{AOG}(\bar{x}_{\text{IO}}) \to \infty$！<strong>点估计策略的真实间隙发散！</strong>直觉上：群体决策者的感知噪声有人偏左、有人偏右，次优性损失为了"和稀泥"式地同时解释两边的观测，被迫收敛到两者的相变临界方向 $\theta_u$，而这个方向恰好是让问题退化成"整条边都最优"的病态点。</p>
         </div>
 
         <div class="proof">

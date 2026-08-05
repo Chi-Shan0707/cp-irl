@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this code or the accompanying paper, please cite it as below."
+type: software
+title: "CP-IRL: Conformal Prediction for Inverse Reinforcement Learning"
+authors:
+  - family-names: "Chi"
+    given-names: "Yuhan"
+    affiliation: "Fudan University"
+    email: "yhchi25@m.fudan.edu.cn"
+repository-code: "https://github.com/Chi-Shan0707/cp-irl"
+url: "https://chi-shan0707.github.io/cp-irl/"
+license: MIT
+version: "0.1.0"
+date-released: 2026-08-05
+preferred-citation:
+  type: article
+  title: "From Inverse Optimization to Sequential Decisions: Conformal Prediction for Inverse Reinforcement Learning"
+  authors:
+    - family-names: "Chi"
+      given-names: "Yuhan"
+      affiliation: "Fudan University"
+      email: "yhchi25@m.fudan.edu.cn"
+  year: 2026
+  url: "https://github.com/Chi-Shan0707/cp-irl"
+  notes: "Manuscript in preparation / workshop submission; see paper/main.pdf in the repository for the current draft."

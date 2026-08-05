@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CP-IRL — Conformal Prediction for Inverse Reinforcement Learning</title>
+<meta name="description" content="CP-IRL transfers Conformal Inverse Optimization's calibrate-then-robustify principle to sequential Markov decision processes.">
+<style>
+  :root{
+    --bg:#fbfaf8;
+    --ink:#151312;
+    --ink-soft:#57534e;
+    --line:#e4e0d9;
+    --accent:#8a3b2b;
+    --accent-soft:#f4ece7;
+    --card:#ffffff;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --serif: "Iowan Old Style","Georgia","Times New Roman",serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 500px at 15% -10%, #f6ede4 0%, transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, #eef1ec 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.65;
+  }
+  .wrap{max-width:840px; margin:0 auto; padding:0 24px;}
+
+  header.hero{padding:88px 0 56px;}
+  .kicker{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:18px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .kicker::before{
+    content:"";
+    display:inline-block;
+    width:26px; height:1px;
+    background:var(--accent);
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(2rem, 4.2vw, 2.9rem);
+    line-height:1.18;
+    margin:0 0 20px;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:1.25rem;
+    color:var(--ink-soft);
+    margin:0 0 28px;
+  }
+  .byline{
+    font-size:0.95rem;
+    color:var(--ink-soft);
+  }
+  .byline a{color:var(--ink); text-decoration:none; border-bottom:1px solid var(--line);}
+  .byline a:hover{border-color:var(--accent); color:var(--accent);}
+  .badges{margin-top:22px; display:flex; flex-wrap:wrap; gap:8px;}
+  .badge{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    letter-spacing:0.03em;
+    padding:5px 10px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    color:var(--ink-soft);
+    background:var(--card);
+  }
+
+  nav.links{
+    display:flex; flex-wrap:wrap; gap:12px;
+    margin:32px 0 0;
+  }
+  nav.links a{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:0.92rem;
+    text-decoration:none;
+    padding:11px 20px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    color:var(--ink);
+    background:var(--card);
+    transition:all .15s ease;
+  }
+  nav.links a.primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  nav.links a:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+    transform:translateY(-1px);
+  }
+  nav.links a.primary:hover{color:#fff; background:#722f22;}
+
+  section{padding:40px 0;}
+  section.divider{border-top:1px solid var(--line);}
+
+  h2{
+    font-family:var(--mono);
+    font-size:0.82rem;
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    color:var(--accent);
+    margin:0 0 20px;
+  }
+
+  .abstract{
+    font-family:var(--serif);
+    font-size:1.08rem;
+    color:#2a2724;
+  }
+  .abstract p{margin:0;}
+
+  .contrib-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:18px;
+  }
+  .contrib{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-left:3px solid var(--accent);
+    border-radius:4px;
+    padding:18px 22px;
+  }
+  .contrib h3{
+    margin:0 0 8px;
+    font-size:1rem;
+    font-family:var(--sans);
+  }
+  .contrib p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:0.95rem;
+  }
+
+  figure{
+    margin:0;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:20px;
+  }
+  figure img{width:100%; display:block; border-radius:4px;}
+  figcaption{
+    margin-top:14px;
+    font-size:0.88rem;
+    color:var(--ink-soft);
+    font-family:var(--sans);
+  }
+
+  .repo-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px,1fr));
+    gap:14px;
+  }
+  .repo-item{
+    border:1px solid var(--line);
+    background:var(--card);
+    border-radius:6px;
+    padding:14px 16px;
+  }
+  .repo-item code{
+    font-family:var(--mono);
+    font-size:0.85rem;
+    color:var(--accent);
+    display:block;
+    margin-bottom:6px;
+  }
+  .repo-item span{
+    font-size:0.85rem;
+    color:var(--ink-soft);
+  }
+
+  pre{
+    background:#1c1a18;
+    color:#f1ece4;
+    padding:20px 22px;
+    border-radius:8px;
+    overflow-x:auto;
+    font-family:var(--mono);
+    font-size:0.85rem;
+    line-height:1.6;
+  }
+
+  .cite-copy{
+    display:inline-block;
+    margin-top:10px;
+    font-family:var(--mono);
+    font-size:0.78rem;
+    color:var(--ink-soft);
+  }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:36px 0 60px;
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  footer a{color:var(--ink-soft);}
+  footer a:hover{color:var(--accent);}
+
+  @media (max-width:600px){
+    header.hero{padding:56px 0 40px;}
+    nav.links{flex-direction:column;}
+    nav.links a{text-align:center;}
+    footer{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="kicker">Conformal Prediction &middot; Inverse Reinforcement Learning</div>
+    <h1>From Inverse Optimization to Sequential Decisions</h1>
+    <p class="subtitle">Conformal Prediction for Inverse Reinforcement Learning (CP&#8209;IRL)</p>
+    <p class="byline">
+      <a href="https://github.com/Chi-Shan0707" target="_blank" rel="noopener">Yuhan Chi</a>
+      &nbsp;&middot;&nbsp; Fudan University
+      &nbsp;&middot;&nbsp; <a href="mailto:yhchi25@m.fudan.edu.cn">yhchi25@m.fudan.edu.cn</a>
+    </p>
+    <div class="badges">
+      <span class="badge">NeurIPS 2026 workshop submission</span>
+      <span class="badge">MIT licensed code</span>
+      <span class="badge">tabular MDPs &middot; gridworld &middot; Objectworld</span>
+    </div>
+
+    <nav class="links">
+      <a class="primary" href="paper/main.pdf">Read the paper (PDF)</a>
+      <a href="math_summary.html">Math walkthrough</a>
+      <a href="https://github.com/Chi-Shan0707/cp-irl">Code on GitHub</a>
+    </nav>
+  </header>
+
+  <section>
+    <h2>Abstract</h2>
+    <div class="abstract">
+      <p>
+        Inverse reinforcement learning (IRL) is inverse optimization with a sequential
+        forward problem: demonstrations reveal an unknown reward, and the recovered
+        reward is subsequently optimized to prescribe a policy. This perspective exposes
+        the same weakness identified by Conformal Inverse Optimization (CIO) for one-shot
+        decisions: collapsing heterogeneous objectives to one point estimate can yield a
+        bad downstream decision. We introduce <strong>CP&#8209;IRL</strong>, which transfers CIO's
+        calibrate-then-robustify principle to Markov decision processes. From a population
+        of demonstrators, CP&#8209;IRL conformally calibrates a set of reward parameters
+        consistent with a new demonstrator and optimizes a policy against the resulting
+        reward ambiguity. The sequential setting requires new machinery: we reduce each
+        calibration score to a reward-dimensional convex program using the Bellman
+        resolvent, and prove that a fixed transition kernel makes the robust MDP convex
+        for any compact reward ambiguity set — a two-state counterexample shows this
+        property can fail once ambiguity also enters the dynamics. We establish
+        finite-sample coverage, regret bounds, and a separation example in which
+        point-estimate IRL has unbounded regret while CP&#8209;IRL's regret vanishes.
+        Experiments on random MDPs, gridworld, and Objectworld identify the method's
+        scope: robustification reduces true-reward regret under systematic estimation
+        bias, but incurs an insurance cost when the point estimate is merely noisy and
+        approximately unbiased.
+      </p>
+    </div>
+  </section>
+
+  <section class="divider">
+    <h2>Three things worth remembering</h2>
+    <div class="contrib-grid">
+      <div class="contrib">
+        <h3>1. A matrix identity turns an intractable joint problem into a tractable one</h3>
+        <p>Calibrating each demonstrator naively requires jointly solving over the reward
+        parameter (dimension&nbsp;<em>d</em>) and the value function (dimension&nbsp;|S|, often
+        in the thousands). Because the value function is an exact linear function of the
+        reward under a fixed policy (the Bellman resolvent), the problem collapses to
+        dimension <em>d</em> — no approximation involved.</p>
+      </div>
+      <div class="contrib">
+        <h3>2. The convexity boundary is found and pinned down with a minimal counterexample</h3>
+        <p>Robust MDPs stay convex for any reward ambiguity set as long as transition
+        dynamics are known exactly. A two-state, two-action example — verified by hand with
+        rational arithmetic — shows convexity breaks the moment ambiguity touches the
+        transition kernel, even minimally.</p>
+      </div>
+      <div class="contrib">
+        <h3>3. Robust hedging helps under bias, hurts under pure noise — reported honestly</h3>
+        <p>Across random MDPs, gridworld, and Objectworld, robustification's benefit
+        depends on the <em>nature</em> of point-estimate error, not just its size: large
+        gains under systematic bias, net losses under unbiased noise. Both regimes are
+        reported as core results.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="divider">
+    <h2>Separation result</h2>
+    <figure>
+      <img src="assets/fig1_separation.png" alt="Figure 1: classic IRL's regret diverges while CP-IRL's regret shrinks toward zero as the scenario scale parameter u grows, log scale, 10 seeds.">
+      <figcaption>
+        Classic point-estimate IRL's true regret (AOG) diverges as the scenario scale
+        <em>u</em> grows, while CP&#8209;IRL's regret shrinks toward zero — 10 random seeds,
+        matching the theoretical separation example worked out in the
+        <a href="math_summary.html#sec2-4">math walkthrough</a>.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="divider">
+    <h2>What's in the repository</h2>
+    <div class="repo-grid">
+      <div class="repo-item"><code>envs/</code><span>tabular MDP, gridworld, Objectworld environments</span></div>
+      <div class="repo-item"><code>irl/</code><span>classical, max-entropy, and Bayesian IRL estimators</span></div>
+      <div class="repo-item"><code>conformal/</code><span>calibration and concentration baselines</span></div>
+      <div class="repo-item"><code>robust/</code><span>occupancy-measure solver for robust MDPs</span></div>
+      <div class="repo-item"><code>experiments/</code><span>coverage, regret, separation, ablation scripts</span></div>
+      <div class="repo-item"><code>paper/</code><span>manuscript, bibliography, figure source</span></div>
+    </div>
+  </section>
+
+  <section class="divider">
+    <h2>Cite this work</h2>
+    <p style="color:var(--ink-soft); font-size:0.95rem; margin-top:-6px;">
+      This is a working manuscript (NeurIPS 2026 workshop submission), not yet formally
+      published. Please cite it as:
+    </p>
+    <pre>@misc{chi2026cpirl,
+  title  = {From Inverse Optimization to Sequential Decisions: Conformal
+            Prediction for Inverse Reinforcement Learning},
+  author = {Chi, Yuhan},
+  year   = {2026},
+  note   = {Manuscript in preparation, Fudan University},
+  url    = {https://github.com/Chi-Shan0707/cp-irl}
+}</pre>
+    <span class="cite-copy">Machine-readable citation also available in <a href="https://github.com/Chi-Shan0707/cp-irl/blob/main/CITATION.cff" style="color:var(--accent);">CITATION.cff</a>.</span>
+  </section>
+
+  <footer>
+    <span>Code released under the <a href="https://github.com/Chi-Shan0707/cp-irl/blob/main/LICENSE">MIT License</a>.</span>
+    <span><a href="https://github.com/Chi-Shan0707/cp-irl">github.com/Chi-Shan0707/cp-irl</a></span>
+  </footer>
+</div>
+
+</body>
+</html>
