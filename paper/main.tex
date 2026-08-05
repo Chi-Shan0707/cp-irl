@@ -1,7 +1,6 @@
 \documentclass{article}
-% NeurIPS 2026 workshop submission (double blind).
-% Switch to [sglblindworkshop] if the target workshop uses single-blind review.
-\usepackage[dblblindworkshop]{neurips_2026}
+% NeurIPS 2026 workshop submission (single blind).
+\usepackage[sglblindworkshop]{neurips_2026}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -15,6 +14,11 @@
 \usepackage{microtype}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\usepackage{amsthm}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{assumption}{Assumption}
 
 \newcommand{\method}{CP-IRL}
 
@@ -22,9 +26,9 @@
 Conformal Prediction for Inverse Reinforcement Learning}
 
 \author{%
-  Author names withheld for review \\
-  Affiliation withheld for review \\
-  \texttt{email withheld for review} \\
+  Yuhan Chi \\
+  Fudan University \\
+  \texttt{yhchi25@m.fudan.edu.cn} \\
 }
 
 \begin{document}
@@ -119,7 +123,9 @@ guarantees. The contributions are:
 \item \textbf{Optimization: sequential structure without state-sized calibration}
   (\S\ref{sec:method-calibration}). For a fixed demonstrator policy, the induced
   value function is \emph{linear} in the reward parameter via the Bellman
-  resolvent $(I - \gamma P_\pi)^{-1}$; substituting this collapses the
+  resolvent $(I - \beta P_\pi)^{-1}$ -- the same feasible-reward characterization
+  used by Ng \& Russell~\cite{ng2000algorithms} for reward shaping, which we
+  repurpose as a calibration-score reduction; substituting this collapses the
   per-demonstrator calibration score from a joint optimization over $(\theta, V)$
   -- size $d + |S|$ -- to an optimization over $\theta$ alone -- size $d$ -- with
   no relaxation, by the policy improvement theorem. We further give a
@@ -216,30 +222,44 @@ from individual expert trajectories (Christiano et al.~\cite{christiano2017deep}
 Rafailov et al.~\cite{rafailov2023direct}) or crowdsourced preference
 populations. Our per-demonstrator exchangeable-unit design (\S\ref{sec:setting})
 is structurally suited to recast ``one annotator, one calibration point'' for
-heterogeneous-preference RLHF populations, giving a coverage guarantee of the
-form ``the deployed policy is provably good for at least a $\gamma$-fraction of
-a population whose individual reward functions are never directly observed'' --
-a guarantee we are not aware of in the RLHF calibration literature -- though we
-do not run an RLHF-scale experiment here (see \S\ref{sec:discussion}).
+heterogeneous-preference RLHF populations, giving a coverage guarantee (in the
+intersection-nonemptiness sense of Theorem~\ref{thm:coverage}, not parameter
+containment) of the form ``the calibrated reward-ambiguity set is compatible
+with a $\gamma$-fraction of the annotator population's individual reward
+functions, which are never directly observed'' -- a guarantee we are not aware
+of in the RLHF calibration literature -- though we do not run an RLHF-scale
+experiment here (see \S\ref{sec:discussion}).
 
 \section{Setting}
 \label{sec:setting}
 
 We now make the CIO--IRL correspondence precise. We adopt the
-population-of-demonstrators setting used throughout this work
-(formalized as Assumption IRL-1 in our coverage proof): a shared tabular MDP
-$M = (S, A, P, \beta, \phi)$ with known transition kernel $P$, discount $\beta$,
-and feature map $\phi: S \times A \to \mathbb{R}^d$ inducing reward
+population-of-demonstrators setting used throughout this work: a shared tabular
+MDP $M = (S, A, P, \beta, \phi)$ with known transition kernel $P$, discount
+$\beta$, and feature map $\phi: S \times A \to \mathbb{R}^d$ inducing reward
 $r_\theta(s,a) = \phi(s,a)^\top\theta$. A population of demonstrators draws
 perceived rewards $\hat\theta_1, \dots, \hat\theta_N \sim P_\theta$ i.i.d.\ and
 each acts optimally in $M$ under their own $\hat\theta_k$, producing an observed
-policy $\pi_k = \pi^*(\hat\theta_k)$. This is the direct MDP analogue of CIO's
-setting, in which each demonstrator plays the role of one (decision, context)
-pair -- and it is the setting under which CIO's Theorem 2's exchangeability
-argument transplants essentially verbatim (\S\ref{sec:theory}). We commit to
-this ``unit A'' design over two weaker alternatives -- per-task exchangeability
-with a single demonstrator (still exchangeable, treated as an easy corollary)
-and per-trajectory exchangeability within one demonstrator (broken by
+policy $\pi_k = \pi^*(\hat\theta_k)$ -- we assume the full deterministic policy
+is observed exactly, not estimated from a finite trajectory sample; relaxing
+this to trajectory-level observation would make $\hat\Theta(\pi_k)$ itself an
+estimated (rather than exact) feasible set and is outside the scope of the
+guarantees below.
+
+\begin{assumption}[Exchangeable calibration unit]
+\label{ass:unit}
+The pairs $(\hat\theta_k, \pi_k)$, $k=1,\dots,N,N{+}1$, are i.i.d.\ (hence
+exchangeable), and $M$ (in particular $P$) is shared and fixed across all
+demonstrators and the deployment instance.
+\end{assumption}
+
+Under Assumption~\ref{ass:unit}, each demonstrator plays the role of one
+(decision, context) pair in CIO's setting, and it is the setting under which
+CIO's coverage argument transplants essentially verbatim
+(\S\ref{sec:theory}, Theorem~\ref{thm:coverage}). We commit to this ``unit A''
+design over two weaker alternatives -- per-task exchangeability with a single
+demonstrator (still exchangeable, treated as an easy corollary) and
+per-trajectory exchangeability within one demonstrator (broken by
 within-trajectory Markov dependence, and used only as an ablation) -- and are
 explicit throughout about what breaks under each relaxation.
 
@@ -248,7 +268,7 @@ population into training and calibration sets; (ii) fit a point estimate
 $\bar\theta$ on the training set with any IRL method (we use and compare a
 sub-optimality-loss linear program, MaxEnt IRL, and Bayesian IRL by MCMC --
 \S\ref{sec:experiments}); (iii) calibrate a spherical-cap uncertainty set
-$C(\bar\theta, \alpha) = \{\theta : \|\theta\|_2 = 1,\ \theta^\top\bar\theta \geq
+$C(\bar\theta, \alpha) = \{\theta : \|\theta\|_2 \leq 1,\ \theta^\top\bar\theta \geq
 \cos\alpha\}$ on the calibration set and solve the robust MDP
 $\max_\pi \min_{\theta \in C(\bar\theta,\alpha)} \theta^\top \mu(\pi)$ in
 occupancy-measure space, where $\mu(\pi)$ is $\pi$'s occupancy measure.
@@ -272,31 +292,51 @@ optimization $\max_{\theta,V} \theta^\top\bar\theta$ subject to the
 Bellman-optimality inequalities written in terms of both $\theta$ and the a
 priori unknown value function $V$ -- a variable count of $d + |S|$.
 
-The key fact we use: for a \textbf{fixed} policy $\pi$, the policy's own induced
-value function $V^\pi_\theta$ is \emph{linear} in $\theta$, via the Bellman
-resolvent:
+The key fact we use, which is the sequential-decision restatement of the
+feasible-reward characterization of Ng \& Russell~\cite{ng2000algorithms}: for
+a \textbf{fixed} policy $\pi$, the policy's own induced value function
+$V^\pi_\theta$ is \emph{linear} in $\theta$, via the Bellman resolvent.
+
+\begin{proposition}[Resolvent-based score reduction]
+\label{prop:resolvent}
+Fix a policy $\pi$, let $P_\pi \in \mathbb{R}^{|S|\times|S|}$ be the induced
+state-transition matrix ($P_\pi(s,s') = P(s,\pi(s),s')$), and let $\Phi_\pi \in
+\mathbb{R}^{|S|\times d}$ be the feature matrix restricted to the actions $\pi$
+takes ($\Phi_\pi(s,\cdot) = \phi(s,\pi(s))^\top$). Let
+$W_\pi := (I-\beta P_\pi)^{-1}\Phi_\pi$ (well-defined since $\beta \in [0,1)$). Then $V^\pi_\theta = W_\pi\theta$ and
+$Q^\pi_\theta(s,a) = M_\pi(s,a)^\top\theta$ with
+$M_\pi(s,a) := \phi(s,a) + \beta P(s,a,\cdot)^\top W_\pi$, both linear in
+$\theta$. Consequently
 \[
-\begin{aligned}
-V^\pi_\theta
-  &= (I - \beta P_\pi)^{-1} \Phi_\pi \theta =: W_\pi \theta, \\
-Q^\pi_\theta(s,a)
-  &= M_\pi(s,a)^\top\theta, \\
-M_\pi(s,a)
-  &:= \phi(s,a) + \beta P(s,a,\cdot)^\top W_\pi.
-\end{aligned}
+\hat\Theta(\pi) = \{\theta : \|\theta\|_2 \leq 1,\ M_\pi(s,a)^\top\theta \leq M_\pi(s,\pi(s))^\top\theta\ \ \forall s,a\},
 \]
-Substituting collapses the calibration score to
-$c_k = \max_\theta \{\theta^\top\bar\theta : \|\theta\|_2 \leq 1,\ M_\pi(s,a)^\top\theta \leq M_\pi(s,\pi(s))^\top\theta\ \forall s,a\}$
--- an optimization over $\theta$ alone (size $d$), with $M_\pi$ precomputed once
-per distinct policy via a single resolvent solve. This is exact, not a
-relaxation: the reduction is a direct consequence of the policy improvement
-theorem, verified against a slow joint-$(\theta,V)$ reference implementation to
-solver precision across randomized instances, and against independent value
-iteration. The amortized speedup over the joint formulation grows with $|S|$
-(2--5.5$\times$ observed at $|S|$ in the low hundreds). When a new
-demonstrator's policy differs from an already-resolved one at only $k$ states,
-the resolvent updates via a Sherman--Morrison--Woodbury identity in
-$O(k^2|S|+k^3)$ rather than a fresh $O(|S|^3)$ solve.
+exactly (no relaxation), and the calibration score
+$c_k = \max_{\theta \in \hat\Theta(\pi_k)} \theta^\top\bar\theta$ is an
+optimization over $\theta$ alone -- size $d$, not $d+|S|$ -- with $M_{\pi_k}$
+precomputed once per distinct policy via a single resolvent solve.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+$V^\pi_\theta$ solves the linear Bellman equation
+$V^\pi_\theta = \Phi_\pi\theta + \beta P_\pi V^\pi_\theta$, which rearranges to
+$V^\pi_\theta = (I-\beta P_\pi)^{-1}\Phi_\pi\theta$ since $I-\beta P_\pi$ is
+invertible for $\beta<1$. Substituting into $Q^\pi_\theta(s,a) =
+\phi(s,a)^\top\theta + \beta P(s,a,\cdot)^\top V^\pi_\theta$ gives the stated
+$M_\pi$. The characterization of $\hat\Theta(\pi)$ is then the policy
+improvement theorem's optimality condition $Q^\pi_\theta(s,a) \leq
+Q^\pi_\theta(s,\pi(s))\ \forall s,a$, rewritten using $M_\pi$.
+\end{proof}
+
+We verified Proposition~\ref{prop:resolvent} against a slow joint-$(\theta,V)$
+reference implementation to solver precision across randomized instances, and
+against independent value iteration. The amortized speedup over the joint
+formulation grows with $|S|$ (2--5.5$\times$ observed at $|S|$ in the low
+hundreds). When a new demonstrator's policy differs from an already-resolved
+one at only $k$ states, the resolvent updates via a Sherman--Morrison--Woodbury
+identity in $O(k^2|S|+k^3)$ rather than a fresh $O(|S|^3)$ solve -- this
+incremental update, tailored to the population-of-demonstrators setting, is
+the part of Proposition~\ref{prop:resolvent} without a counterpart in
+Ng \& Russell~\cite{ng2000algorithms}.
 
 \subsection{A tight tractability boundary for the robust MDP}
 \label{sec:method-robust}
@@ -304,83 +344,148 @@ $O(k^2|S|+k^3)$ rather than a fresh $O(|S|^3)$ solve.
 The robust decision problem, $\max_\pi \min_{\theta \in C} \theta^\top\mu(\pi)$,
 is a minimax game over policies. We work in occupancy-measure space: $M(P)$
 denotes the (fixed, since $P$ is known) polytope of achievable occupancy
-measures, and the robust objective is
-$\max_{d \in M(P)} \min_{\theta \in C} \theta^\top\Phi^\top d$.
+measures $\mu$, and $\Phi \in \mathbb{R}^{d \times |S \times A|}$ is the matrix
+whose columns are $\phi(s,a)$, so that $\theta^\top\Phi^\top\mu = \sum_{s,a}
+\mu(s,a)\, r_\theta(s,a)$ is the expected discounted return of occupancy
+measure $\mu$ under reward $\theta$. The robust objective is
+$\max_{\mu \in M(P)} \min_{\theta \in C} \theta^\top\Phi^\top\mu$.
 
-\textbf{Sufficiency.} For \emph{any} nonempty compact ambiguity set
-$C \subseteq \mathbb{R}^d$ -- not only the spherical cap --
-$g_C(x) := \min_{\theta \in C} \theta^\top x$ is a pointwise infimum of affine
-functions of $x$, hence concave, regardless of $C$'s shape; composing with the
-linear map $d \mapsto \Phi^\top d$ preserves concavity; and $M(P)$ is a fixed
-compact polytope. The robust MDP is therefore a \textbf{convex program}, solved
-without any Bellman recursion or rectangularity assumption -- the ambiguity
-never touches the feasible set $M(P)$, only the objective.
+\begin{theorem}[Reward-only ambiguity is convex; this is tight]
+\label{thm:convexity}
+\textbf{(a) Sufficiency.} For \emph{any} nonempty compact ambiguity set
+$C \subseteq \mathbb{R}^d$ (e.g., our calibrated spherical cap
+$C(\bar\theta,\alpha) = \{\theta:\|\theta\|_2\le 1,\ \theta^\top\bar\theta \geq
+\cos\alpha\}$, a cap of the unit ball rather than the unit sphere), if the
+transition kernel $P$ is fixed and known, then
+$\max_{\mu \in M(P)}\min_{\theta \in C}\theta^\top\Phi^\top\mu$ is a concave
+maximization over the fixed compact polytope $M(P)$, hence a convex program.
+\textbf{(b) Necessity.} This can fail as soon as ambiguity couples reward and
+transition probability, even minimally: there exists a 2-state, 2-action MDP
+and a convex, one-dimensional, non-product ambiguity set over $(\theta,P)$
+jointly for which the analogous worst-case value function is not concave.
+\end{theorem}
 
-\textbf{Failure beyond reward-only ambiguity.} The sufficiency argument depends
-critically on keeping the transition kernel fixed. We exhibit a 2-state,
-2-action MDP with a convex, one-dimensional, \emph{non-product} ambiguity set
-coupling reward $\theta(t) = 1+t$ and transition probability $q(t) = 1-t$ for
-$t \in [0,1]$. The induced worst-case value, as a function of the agent's
-(scalar, single-dimensional) policy parameter $p \in [0,1]$, is
-$W(p) = p(1+t)/(1-\beta p q(t))$ minimized over $t$; a closed-form derivation
-gives an explicit, hand-verifiable, rational-valued Jensen violation:
-$W(5/18) = 10/27 \approx 0.370 < \frac{1}{2}[W(0)+W(5/9)] \approx 0.556$,
-independently reproduced via numerical optimization rather than only the
-closed-form derivation. The coupling required to break convexity is minimal --
-a single scalar $t$ linking reward and transition ambiguity along a line
-segment, far short of a fully unconstrained non-rectangular adversary.
+\begin{proof}[Proof sketch]
+(a) $g_C(x) := \min_{\theta \in C}\theta^\top x$ is a pointwise infimum of
+affine functions of $x$, hence concave, regardless of $C$'s shape; composing
+with the linear map $\mu \mapsto \Phi^\top\mu$ preserves concavity; $M(P)$ does
+not depend on $\theta$, so the ambiguity never touches the feasible set, only
+the objective, and the outer problem is a concave maximization over a fixed
+polytope -- no Bellman recursion or rectangularity assumption is needed.
+(b) Take reward $\theta(t) = 1+t$ and transition probability $q(t) = 1-t$
+coupled through a single scalar $t \in [0,1]$. The induced worst-case value, as
+a function of the agent's (scalar) policy parameter $p \in [0,1]$, is
+$W(p) = \min_{t\in[0,1]} p(1+t)/(1-\beta p q(t))$. Direct computation gives the
+explicit, hand-verifiable, rational-valued Jensen violation
+$W(5/18) = 10/27 \approx 0.370 < \tfrac{1}{2}[W(0)+W(5/9)] \approx 0.556$,
+independently reproduced via numerical optimization; $W$ is therefore not
+concave, so the outer maximization is not a convex program in this regime.
+\end{proof}
+
+Part (a) generalizes the sufficiency result of Gadot et
+al.~\cite{gadot2024solving} (who solve the convex $L_p$-ball case exactly via
+H\"older duality and policy gradient) to an arbitrary compact $C$, via a direct
+occupancy-measure argument. Part (b) shows the coupling required to break
+concavity is minimal -- a single scalar $t$ linking reward and transition
+ambiguity along a line segment, far short of a fully unconstrained
+non-rectangular adversary -- and, to our knowledge, is not established by
+either Gadot et al.\ or Xu et al.~\cite{xu2026learning}. Note that failure of
+concavity is a failure of this \emph{particular} tractability argument, not by
+itself a proof of NP-hardness; general non-rectangular robust MDPs are already
+known to be NP-hard~\cite{wiesemann2013robust}.
 
 \section{Theory}
 \label{sec:theory}
 
-We prove five further results, each the direct MDP/IRL analogue of a
+We prove four further results, each the direct MDP/IRL analogue of a
 corresponding CIO theorem, and each independently spot-checked computationally
-against the implemented solvers rather than trusted as derivation alone.
+against the implemented solvers rather than trusted as derivation alone. The
+fifth item below (efficiency) is an empirical confirmation, not a theorem, and
+is reported as such.
 
-\textbf{Coverage.} For the calibrated angle $\alpha_\gamma$ from Theorem 1's
-construction, $\mathbb{P}(\hat\Theta_{\mathrm{new}} \cap C(\bar\theta, \alpha_\gamma) \neq \emptyset) \geq \gamma$,
-with the standard split-conformal finite-sample concentration bound
-$O(\sqrt{\log N_{\mathrm{val}} / N_{\mathrm{val}}})$ on how close the realized
-coverage is to $\gamma$. The proof is a line-for-line transplant of CIO's own
-exchangeability argument. A marginal-coverage simulation against the actual
-calibration code (150 trials per $(\gamma, N_{\mathrm{val}})$ cell) confirms
-coverage $\geq \gamma$ holds cleanly at every tested combination.
+\begin{theorem}[Coverage]
+\label{thm:coverage}
+Under Assumption~\ref{ass:unit}, let $\alpha_\gamma$ be the $\lceil
+(N_{\mathrm{val}}+1)\gamma\rceil$-th smallest calibration score among
+$c_1,\dots,c_{N_{\mathrm{val}}}$ (Proposition~\ref{prop:resolvent}). Then
+\[
+\mathbb{P}\big(\hat\Theta_{\mathrm{new}} \cap C(\bar\theta, \alpha_\gamma) \neq \emptyset\big) \geq \gamma,
+\]
+where $\hat\Theta_{\mathrm{new}}$ is the new demonstrator's feasible reward
+set. \textbf{This is an intersection-nonemptiness guarantee, not a containment
+guarantee}: it does not by itself assert $\theta^*_{\mathrm{new}} \in
+C(\bar\theta,\alpha_\gamma)$, only that the calibrated cap is compatible with
+some reward for which $\pi_{\mathrm{new}}$ is optimal. The realized coverage
+concentrates around $\gamma$ at the standard split-conformal finite-sample rate
+$O(\sqrt{\log N_{\mathrm{val}}/N_{\mathrm{val}}})$.
+\end{theorem}
 
-\textbf{Regret bounds.} We derive the occupancy-measure Lipschitz constant
-governing how much the value function can change under a bounded reward
-perturbation, $\nu(d) = \|\Phi^\top d\|_2/(1-\beta) \leq \|\phi\|_{2,\infty}/(1-\beta)$
-(the maximum per-state-action feature norm, verified against 200 randomized
-MDPs with zero violations), and use it to prove the direct analogue of CIO's
-Theorem 3. We are explicit that this is a general worst-case bound, not a tight
-one: cross-checked against the exact closed-form regret derived for our
-degenerate construction, the general bound's looseness grows with the
-construction's scaling parameter, from roughly 8--15$\times$ at the low end of
-the range tested to roughly 390--430$\times$ at the high end -- a materially
-worse asymptotic gap than CIO's own Example 1 exhibits for its own general bound
-(roughly 2.3--4$\times$).
+The proof is a line-for-line transplant of CIO's own exchangeability argument,
+applied to the scores of Proposition~\ref{prop:resolvent} in place of CIO's LP
+dual scores; exchangeability of $(\hat\theta_k,\pi_k)$ under
+Assumption~\ref{ass:unit} is what licenses treating $c_{\mathrm{new}}$ as
+exchangeable with the calibration scores. A marginal-coverage simulation
+against the actual calibration code (150 trials per $(\gamma,
+N_{\mathrm{val}})$ cell) confirms coverage $\geq \gamma$ holds at every tested
+combination; because demonstrator policies are drawn from a finite set,
+repeated policies produce tied (atomic) calibration scores, which is the most
+likely source of the over-coverage we observe empirically (\S\ref{sec:experiments}).
 
-\textbf{Separation.} We construct the direct sequential-decision analogue of
-CIO's degenerate Example 1: a single-state, two-action MDP whose reward
-features are the \emph{negation} of CIO's original cost features. We prove the
-point-estimate IRL solution converges to a degenerate direction
-$\theta_u = (1,u)/\sqrt{1+u^2}$, not the true $\theta^*$, and that this makes
-classical IRL's true-reward regret grow unboundedly as the scaling parameter
-$u \to \infty$, while the calibrated robust policy's regret is bounded and
-shrinks to zero. This reduced two-action MDP's robust optimum is a genuine
-\emph{mixture}, with exact closed form $p^*(u) = u^2/(1+u^2)$, independent of
-the calibration angle -- derived via Sion's minimax theorem and independently
-re-verified against the actual implemented solver to $10^{-6}$ precision.
-Figure~\ref{fig:separation} shows the live 10-seed computational confirmation.
+\begin{theorem}[Regret bound]
+\label{thm:regret}
+Let $\|\phi\|_{2,\infty} := \max_{s,a}\|\phi(s,a)\|_2$ and
+$\nu := \|\phi\|_{2,\infty}/(1-\beta)$, the maximum per-state-action
+feature norm scaled by the effective horizon. For the robust policy calibrated
+at level $\gamma$ against ambiguity set $C(\bar\theta,\alpha_\gamma)$, the true
+regret relative to the in-hindsight optimal policy under
+$\theta^*_{\mathrm{new}}$ is bounded, with probability at least $\gamma$, by a
+quantity of order $\nu \cdot \sin\alpha_\gamma$.
+\end{theorem}
+
+We verified $\nu$'s validity as a Lipschitz constant against 200 randomized
+MDPs with zero violations. We are explicit that Theorem~\ref{thm:regret} is a
+general worst-case bound, not a tight one: cross-checked against the exact
+closed-form regret derived for our degenerate construction below, the general
+bound's looseness grows with the construction's scaling parameter, from
+roughly 8--15$\times$ at the low end of the range tested to roughly
+390--430$\times$ at the high end -- a materially worse asymptotic gap than
+CIO's own Example 1 exhibits for its own general bound (roughly 2.3--4$\times$).
+
+\begin{theorem}[Separation]
+\label{thm:separation}
+There exists a single-state, two-action MDP (the sequential-decision analogue
+of CIO's degenerate Example 1, with reward features the \emph{negation} of
+CIO's original cost features) and an IRL point estimator such that: the
+point-estimate solution converges to a degenerate direction
+$\theta_u = (1,u)/\sqrt{1+u^2} \neq \theta^*$ as the scaling parameter
+$u\to\infty$, giving classical point-estimate IRL true-reward regret that grows
+without bound in $u$; while the calibrated robust policy's regret is bounded
+and shrinks to zero over the same range. The robust optimum is a genuine
+mixture, with exact closed form $p^*(u) = u^2/(1+u^2)$, independent of the
+calibration angle.
+\end{theorem}
+
+Theorem~\ref{thm:separation} is proved via Sion's minimax theorem for the
+mixture's closed form, and independently re-verified against the actual
+implemented solver to $10^{-6}$ precision. Figure~\ref{fig:separation} shows
+the live 10-seed computational confirmation. We flag directly that this
+separation exhibits the LP-based point estimator's failure mode specifically
+(a degenerate boundary direction under tie-breaking); we discuss whether it
+extends to MaxEnt and Bayesian IRL in \S\ref{sec:experiments}, Q3.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.6\linewidth]{figures/fig1_separation.pdf}
-  \caption{Separation result (\S\ref{sec:theory}): true-reward regret vs.\ the
-  scaling parameter $u$, log scale, 10 seeds, shaded regions show $\pm 1$ std.
-  Classic IRL's regret (orange) grows monotonically and without bound; \method{}'s
-  regret (blue) shrinks monotonically toward zero over the same range. Variance
-  grows with $u$ for both curves, consistent with tie-breaking sensitivity as
-  $\bar\theta$ approaches the exact degenerate boundary.}
+  \caption{Separation result (Theorem~\ref{thm:separation}): true-reward regret
+  of the deployed policy, measured against the ground-truth reward
+  $\theta^*_{\mathrm{new}}$, vs.\ the scaling parameter $u \in [2,100]$ (log
+  scale), 10 seeds, shaded regions show $\pm 1$ std. ``Classic IRL'' is the
+  sub-optimality-loss linear-program point estimator (\S\ref{sec:experiments}),
+  which converges to the degenerate direction $\theta_u$; its regret (orange)
+  grows monotonically and without bound. \method{}'s regret (blue) shrinks
+  monotonically toward zero over the same range. Variance grows with $u$ for
+  both curves, consistent with tie-breaking sensitivity as $\bar\theta$
+  approaches the exact degenerate boundary.}
   \label{fig:separation}
 \end{figure}
 
@@ -448,7 +553,13 @@ conformal-robust, and DKW-robust decision rules. MaxEnt and Bayesian IRL recover
 an accurate point direction, whereas the LP estimator has nontrivial error; in
 all three cases, conformal robustification is less conservative than DKW but
 incurs higher true-reward regret than the corresponding point policy. The same
-direction holds in Objectworld. These comparisons separate two claims that are
+direction holds in Objectworld. We have not run MaxEnt or Bayesian IRL on the
+degenerate construction of Theorem~\ref{thm:separation} itself -- that
+theorem's divergence result is specific to the LP estimator's tie-breaking
+behavior at the exact optimality boundary, and we do not claim MaxEnt or
+Bayesian IRL (which are strictly interior, likelihood-based estimators)
+necessarily diverge there too; whether the separation result generalizes to
+these smoother estimators is left open. These comparisons separate two claims that are
 often conflated: conformal calibration can produce a tighter valid uncertainty
 set than a generic concentration bound, yet optimizing for its worst case need
 not improve average performance under the true reward.
@@ -478,19 +589,21 @@ related MDP with different dynamics: at target coverage $0.8$, changing the
 gridworld slip probability from $0.10$ to $0.15$ lowers mean target coverage to
 $0.567$ over eight seeds. The probe establishes the failure of naive transfer,
 not its remedy. Developing a weighted-conformal correction that combines
-covariate-shift weighting with the principal-angle transferability conditions
-of Schlaginhaufen \& Kamgarpour~\cite{schlaginhaufen2024towards} remains future
-work. We also tested a preference-population/RLHF-style
+covariate-shift weighting (in the sense of Tibshirani et
+al.~\cite{tibshirani2019conformal}) with the principal-angle transferability
+conditions of Schlaginhaufen \& Kamgarpour~\cite{schlaginhaufen2024towards}
+remains future work. We also tested a preference-population/RLHF-style
 relabeling of our per-demonstrator design: a ``response selection'' MDP in which
 the population is reinterpreted as RLHF annotators rather than task
-demonstrators, using the same calibration and robust-MDP code unchanged. The
-coverage guarantee transfers exactly as claimed -- realized coverage exceeds the
-target $\gamma$ at every level tested (0.947--0.994 across
-$\gamma \in \{0.5,0.7,0.8,0.9\}$, 8 seeds) -- confirming the framework
-generalizes by relabeling alone, at the cost of the same limitations documented
-elsewhere (degenerate low-dimensional calibration geometry in this simple
-construction; the same systematic-bias-conditional benefit, not a special
-exemption for the RLHF framing). All experiments are at tabular scale by
+demonstrators, using the same calibration and robust-MDP code unchanged.
+Realized coverage meets or exceeds the target $\gamma$ at every level tested
+(0.947--0.994 across $\gamma \in \{0.5,0.7,0.8,0.9\}$, 8 seeds), consistent
+with Theorem~\ref{thm:coverage} and confirming the framework generalizes by
+relabeling alone; the gap above target is likely the same score-atom
+over-coverage discussed under Theorem~\ref{thm:coverage}, sharpened here by a
+small, low-dimensional annotator population, and is not a special exemption
+for the RLHF framing (the same systematic-bias-conditional benefit applies).
+All experiments are at tabular scale by
 explicit design choice; we make no claim about function-approximation or
 deep-RL/language-model settings.
 

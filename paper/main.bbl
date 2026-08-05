@@ -1,4 +1,4 @@
-\begin{thebibliography}{19}
+\begin{thebibliography}{21}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -67,6 +67,12 @@ Bo~Lin, Erick Delage, and Timothy C.~Y. Chan.
 \newblock In \emph{Advances in Neural Information Processing Systems
   (NeurIPS)}, 2024.
 
+\bibitem[Ng and Russell(2000)]{ng2000algorithms}
+Andrew~Y. Ng and Stuart~J. Russell.
+\newblock Algorithms for inverse reinforcement learning.
+\newblock In \emph{Proceedings of the Seventeenth International Conference on
+  Machine Learning (ICML)}, pages 663--670, 2000.
+
 \bibitem[Nilim and El~Ghaoui(2005)]{nilim2005robust}
 Arnab Nilim and Laurent El~Ghaoui.
 \newblock Robust control of markov decision processes with uncertain transition
@@ -118,6 +124,14 @@ Chunlin Sun, Linyu Liu, and Xin Li.
 \newblock Predict-then-calibrate: A new perspective of robust contextual lp.
 \newblock In \emph{Advances in Neural Information Processing Systems
   (NeurIPS)}, 2023.
+
+\bibitem[Tibshirani et~al.(2019)Tibshirani, Barber, Cand\`es, and
+  Ramdas]{tibshirani2019conformal}
+Ryan~J. Tibshirani, Rina~Foygel Barber, Emmanuel~J. Cand\`es, and Aaditya
+  Ramdas.
+\newblock Conformal prediction under covariate shift.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, pages 2526--2536, 2019.
 
 \bibitem[Vovk et~al.(2005)Vovk, Gammerman, and Shafer]{vovk2005algorithmic}
 Vladimir Vovk, Alexander Gammerman, and Glenn Shafer.
