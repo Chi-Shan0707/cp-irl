@@ -118,8 +118,8 @@ guarantees. The contributions are:
 \item \textbf{Transfer: conformal inverse optimization for IRL.}
   We formulate one demonstrator as one exchangeable inverse-optimization
   instance, calibrate a reward uncertainty set through Bellman-optimal reward
-  feasibility, and establish finite-sample coverage together with perceived-
-  and true-regret bounds (\S\ref{sec:setting}--\S\ref{sec:theory}).
+  feasibility, and establish finite-sample coverage together with a
+  true-reward regret bound (\S\ref{sec:setting}--\S\ref{sec:theory}).
 \item \textbf{Optimization: sequential structure without state-sized calibration}
   (\S\ref{sec:method-calibration}). For a fixed demonstrator policy, the induced
   value function is \emph{linear} in the reward parameter via the Bellman
@@ -313,8 +313,9 @@ $\theta$. Consequently
 \]
 exactly (no relaxation), and the calibration score
 $c_k = \max_{\theta \in \hat\Theta(\pi_k)} \theta^\top\bar\theta$ is an
-optimization over $\theta$ alone -- size $d$, not $d+|S|$ -- with $M_{\pi_k}$
-precomputed once per distinct policy via a single resolvent solve.
+optimization over $\theta$ alone -- size $d$, not $d+|S|$ -- with $W_{\pi_k}$
+(and hence $\Psi_{\pi_k}$) precomputed once per distinct policy via a single
+resolvent solve.
 \end{proposition}
 
 \begin{proof}[Proof sketch]
@@ -345,11 +346,16 @@ Ng \& Russell~\cite{ng2000algorithms}.
 The robust decision problem, $\max_\pi \min_{\theta \in C} \theta^\top\mu(\pi)$,
 is a minimax game over policies. We work in occupancy-measure space: $M(P)$
 denotes the (fixed, since $P$ is known) polytope of achievable occupancy
-measures $\mu$, and $\Phi \in \mathbb{R}^{d \times |S \times A|}$ is the matrix
-whose columns are $\phi(s,a)$, so that $\theta^\top\Phi^\top\mu = \sum_{s,a}
-\mu(s,a)\, r_\theta(s,a)$ is the expected discounted return of occupancy
-measure $\mu$ under reward $\theta$. The robust objective is
-$\max_{\mu \in M(P)} \min_{\theta \in C} \theta^\top\Phi^\top\mu$.
+measures $\mu$, normalized so $\sum_{s,a}\mu(s,a)=1$, and
+$\Phi \in \mathbb{R}^{|S \times A| \times d}$ is the matrix whose rows are
+$\phi(s,a)^\top$ (matching the convention already used for $\Phi_\pi$ in
+\S\ref{sec:method-calibration}), so that $\theta^\top\Phi^\top\mu = \sum_{s,a}
+\mu(s,a)\, r_\theta(s,a)$ is the expected per-step reward of occupancy measure
+$\mu$ under reward $\theta$, and $\theta^\top\Phi^\top\mu/(1-\beta)$ is the
+corresponding expected discounted return. The robust objective is
+$\max_{\mu \in M(P)} \min_{\theta \in C} \theta^\top\Phi^\top\mu$ (the
+$1/(1-\beta)$ factor is a positive constant and does not affect the
+$\arg\max$).
 
 \begin{theorem}[Reward-only ambiguity is convex; this is tight]
 \label{thm:convexity}
@@ -446,13 +452,17 @@ $\theta$, via Cauchy--Schwarz), and let $\mu_{\mathrm{CIRL}}$, $\mu^*$ denote
 the occupancy measures of the robust policy and of the true optimum
 $\pi^*(\theta^*_{\mathrm{new}})$, respectively. Suppose the calibrated cap
 $C(\bar\theta,\alpha_1)$ satisfies the \emph{almost-sure-covering} condition
-$\mathbb{P}(\hat\Theta' \cap C(\bar\theta,\alpha_1) \neq \emptyset) = 1$ for a
-fresh demonstrator (strictly stronger than Theorem~\ref{thm:coverage}'s
-$\gamma$-coverage; achievable at $\alpha_1=\pi$ but then vacuous), that any two
-unit-norm rewards optimal for the same policy are within $\eta$ of each other
-(bounded feasible-set diameter), and that the population mean reward is within
-$\sigma$ of $\theta^*_{\mathrm{new}}$ in $\ell_2$. Then the true-reward regret
-of the robust policy satisfies
+$\mathbb{P}(\hat\Theta_{\mathrm{new}} \cap C(\bar\theta,\alpha_1) \neq \emptyset) = 1$
+for a fresh demonstrator (strictly stronger than Theorem~\ref{thm:coverage}'s
+$\gamma$-coverage; achievable trivially by taking $C$ to be the whole unit
+ball, i.e.\ $\alpha_1$ at its maximal value, but then uninformative), that any
+two unit-norm rewards optimal for the same policy are within $\eta$ of each
+other (bounded feasible-set diameter), and that the population mean reward is
+within $\sigma$ of $\theta^*_{\mathrm{new}}$ in $\ell_2$. Then the
+\textbf{average optimality gap} $\mathrm{AOG} :=
+V_{\theta^*_{\mathrm{new}}}(\mu^*) - V_{\theta^*_{\mathrm{new}}}(\mu_{\mathrm{CIRL}})$
+(the true-reward regret of the robust policy relative to the in-hindsight
+optimum) satisfies
 \[
 \mathrm{AOG} \leq \big(2\sin\alpha_1+\eta+\sigma\big)\,\nu(\mu^*) + (\eta+\sigma)\,\nu(\mu_{\mathrm{CIRL}}),
 \]
@@ -463,8 +473,10 @@ $\mathrm{AOG} \leq (2\sin\alpha_1+2\eta+2\sigma)\,\bar\nu$.
 
 The proof is a three-term telescoping argument (Lipschitz continuity of
 $\theta\mapsto\theta^\top\Phi^\top\mu$, the chord-length identity
-$\|\theta-\theta'\|_2 = 2\sin(\phi/2)$ for unit vectors at angle $\phi$, and
-the robust policy's minimax optimality), re-derived from scratch for the
+$\|\theta-\theta'\|_2 = 2\sin(\psi/2)$ for unit vectors at angle $\psi$ --
+giving $2\sin\alpha_1$ as the chord bound for any two points within
+$C(\bar\theta,\alpha_1)$, since they are within angle $2\alpha_1$ of each
+other -- and the robust policy's minimax optimality), re-derived from scratch for the
 MDP's $\max_\pi\min_\theta$ sign convention rather than transplanted
 line-for-line from CIO's $\min_x\max_\theta$ convention. We verified $\bar\nu$
 as a valid uniform Lipschitz constant against 200 randomized MDPs with zero
@@ -600,9 +612,10 @@ not improve average performance under the true reward.
 \section{Discussion and Limitations}
 \label{sec:discussion}
 
-\textbf{When does \method{} help, precisely?} Our theory proves the method
-dominates classical point-estimate IRL when the point estimate is
-\emph{systematically} biased. Our experiments show that on generic environments
+\textbf{When does \method{} help, precisely?} Our theory (Theorem~\ref{thm:separation})
+proves a separation on a construction where the point estimate is
+\emph{systematically} biased -- classical point-estimate IRL's regret diverges
+there while \method{}'s vanishes. Our experiments show that on generic environments
 with unbiased-but-noisy point estimates, it does not, and in fact costs regret
 in exchange for a worst-case guarantee that is real (independently verified)
 but not free. This is a precise, falsifiable scope condition, not a hedge: the
