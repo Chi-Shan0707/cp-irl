@@ -14,7 +14,7 @@ version: "0.1.0"
 date-released: 2026-08-05
 preferred-citation:
   type: article
-  title: "From Inverse Optimization to Sequential Decisions: Conformal Prediction for Inverse Reinforcement Learning"
+  title: "Calibrating What Behavior Identifies: Conformal Reward Sets for Inverse Reinforcement Learning"
   authors:
     - family-names: "Chi"
       given-names: "Yuhan"

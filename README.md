@@ -21,35 +21,35 @@
 
 ---
 
-CP-IRL extends Conformal Inverse Optimization (CIO) from one-shot decisions to
-inverse reinforcement learning. It calibrates a finite-sample,
-distribution-free reward uncertainty set from a population of demonstrators
-and computes a robust policy for the induced Markov decision process.
+CP-IRL asks which parts of Conformal Inverse Optimization (CIO) survive the
+move from one-shot decisions to inverse reinforcement learning, and answers
+component by component. The conformal calibration itself transfers untouched —
+it is split conformal prediction, and no claim here improves on it. Two things
+do not transfer: CIO's angular score is measured in reward coordinates that
+behavior does not fix, so we replace it with a distance in the span seminorm
+induced by the occupancy polytope; and the calibrated event ("some reward in
+the set explains the new demonstrator") is weaker than what a robust
+prescription needs ("the demonstrator's own reward is in the set"). Closing
+that second gap takes an explicit identification assumption — a certified
+inverse-fiber diameter — which expands the intersection radius into a latent
+reward-ray containment radius used by a reference-relative robust policy.
 
 <details>
 <summary><strong>Abstract</strong></summary>
 <br>
 
-Inverse reinforcement learning (IRL) is inverse optimization with a sequential
-forward problem: demonstrations reveal an unknown reward, and the recovered
-reward is subsequently optimized to prescribe a policy. This perspective
-exposes the same weakness identified by Conformal Inverse Optimization (CIO)
-for one-shot decisions: collapsing heterogeneous objectives to one point
-estimate can yield a bad downstream decision. We introduce **CP-IRL**, which
-transfers CIO's calibrate-then-robustify principle to Markov decision
-processes. From a population of demonstrators, CP-IRL conformally calibrates a
-set of reward parameters consistent with a new demonstrator and optimizes a
-policy against the resulting reward ambiguity. The sequential setting requires
-new machinery. We reduce each calibration score to a reward-dimensional convex
-program using the Bellman resolvent, and prove that a fixed transition kernel
-makes the robust MDP convex for any compact reward ambiguity set; a two-state
-counterexample shows that this property can fail when ambiguity also enters
-the dynamics. We establish finite-sample coverage, regret bounds, and a
-separation example in which point-estimate IRL has unbounded regret while
-CP-IRL's regret vanishes. Experiments on random MDPs, gridworld, and
-Objectworld identify the method's scope: robustification reduces true-reward
-regret under systematic estimation bias, but incurs an insurance cost when the
-point estimate is merely noisy and approximately unbiased.
+**CP-IRL** uses one geometric object — the occupancy-difference span — to
+calibrate Bellman inverse fibers and to derive the downstream robust penalty.
+Unit-span normalization makes the construction invariant to positive reward
+scale, additive null directions, and invertible feature reparameterizations
+while keeping the score an LP; a feature reparameterization that leaves every
+reward and policy unchanged moves CIO's angular radius by 24.3° and ours by
+2e-8. Split conformal gives exact inverse-fiber intersection coverage (measured
+0.82 at target 0.80), but containment of the demonstrator's own reward at the
+same radius reaches only 0.44. Given a certified fiber diameter `eta`, the
+implementation converts the calibrated radius `q` into a containment radius `R`
+and solves a safe reference-relative robust LP. If `R >= 1`, the guarantee is
+provably degenerate and the solver returns the reference explicitly.
 
 </details>
 
@@ -58,6 +58,7 @@ point estimate is merely noisy and approximately unbiased.
 - tabular MDP, gridworld, and Objectworld environments
 - classical, maximum-entropy, and Bayesian IRL estimators
 - conformal reward-set calibration based on Bellman-optimal feasible rewards
+- intrinsic reward-ray normalization and a two-stage `q, eta -> R` bridge
 - an occupancy-measure solver for robust MDPs with reward ambiguity
 - experiment scripts for coverage, regret, separation, and ablation studies
 - the NeurIPS 2026 workshop paper and its figure source
@@ -72,8 +73,14 @@ geometric counterexample — is at
 
 ## Environment
 
-The implementation uses Python with NumPy, SciPy, and CVXPY. Tests run from
-the repository root with:
+The implementation uses Python 3.10 with NumPy, SciPy, and CVXPY. Install the
+tested dependency ranges with:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Tests run from the repository root with:
 
 ```bash
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. python -m pytest \
@@ -96,9 +103,11 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. python -m pytest \
 ## Scope
 
 The current implementation targets tabular MDPs with rewards linear in known
-features. The experiments show that robust reward hedging is most useful when
-the point estimator is systematically biased; with approximately unbiased but
-noisy estimates, robustness can incur additional true-reward regret.
+features. A useful safe prescription requires an application-specific
+certificate satisfying `2*q + eta < 1`; the universal `eta = 2` bound is valid
+but forces the robust policy back to the reference. The framework is complete,
+while learning or certifying a small fiber diameter is left to the intended
+application's additional information.
 
 ## Citation
 
@@ -108,8 +117,8 @@ it as:
 
 ```bibtex
 @misc{chi2026cpirl,
-  title  = {From Inverse Optimization to Sequential Decisions: Conformal
-            Prediction for Inverse Reinforcement Learning},
+  title  = {Calibrating What Behavior Identifies: Conformal Reward Sets for
+            Inverse Reinforcement Learning},
   author = {Chi, Yuhan},
   year   = {2026},
   note   = {Manuscript in preparation, Fudan University},

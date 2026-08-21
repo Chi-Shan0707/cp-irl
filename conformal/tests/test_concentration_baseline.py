@@ -16,6 +16,16 @@ def test_dkw_threshold_in_valid_range():
     assert -1.0 <= thresh <= 1.0
 
 
+def test_dkw_uses_sentinel_when_sample_is_too_small():
+    assert dkw_quantile_threshold(np.array([0.8]), gamma=0.9, delta=0.05) == -1.0
+
+
+def test_dkw_threshold_is_observed_order_statistic_or_sentinel():
+    scores = np.array([0.2, 0.2, 0.7, 0.9])
+    threshold = dkw_quantile_threshold(scores, gamma=0.2, delta=0.5)
+    assert threshold == -1.0 or threshold in scores
+
+
 @pytest.mark.parametrize("seed", range(10))
 def test_concentration_alpha_is_looser_than_conformal(seed):
     """For the same nominal gamma, the DKW-based alpha should typically be >= the

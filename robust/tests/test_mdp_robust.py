@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from envs.mdp import random_mdp, occupancy_lp
-from robust.mdp_robust import solve_robust_mdp
+from robust.mdp_robust import occupancy_to_policy, solve_robust_mdp
 
 
 @pytest.mark.parametrize("seed", range(8))
@@ -35,6 +35,19 @@ def test_robust_value_reduces_to_plain_fo_as_alpha_to_zero():
     assert val_robust == pytest.approx(val_plain, abs=1e-2)
 
 
+def test_robust_value_equals_plain_fo_at_exactly_zero():
+    rng = np.random.default_rng(31)
+    mdp = random_mdp(5, 3, 3, gamma=0.9, rng=rng)
+    theta_bar = rng.uniform(0.5, 2.0, size=mdp.d)
+    theta_bar /= np.linalg.norm(theta_bar)
+
+    d_plain, val_plain = occupancy_lp(mdp, theta_bar)
+    d_robust, val_robust = solve_robust_mdp(mdp, theta_bar, alpha=0.0)
+
+    assert val_robust == pytest.approx(val_plain, abs=1e-10)
+    assert d_robust == pytest.approx(d_plain, abs=1e-10)
+
+
 @pytest.mark.parametrize("seed", range(8))
 def test_robust_value_never_exceeds_plain_fo_value(seed):
     """Hedging against worst-case reward can only ever be <= the value under the
@@ -59,3 +72,11 @@ def test_robust_occupancy_is_feasible():
     d_occ, _ = solve_robust_mdp(mdp, theta_bar, alpha=0.5)
     assert d_occ.sum() == pytest.approx(1.0, abs=1e-4)
     assert np.all(d_occ >= -1e-8)
+
+
+def test_occupancy_to_policy_is_stochastic_with_unvisited_state():
+    d_occ = np.array([[0.2, 0.3], [0.0, 0.0]])
+    policy = occupancy_to_policy(d_occ)
+    assert policy[0] == pytest.approx([0.4, 0.6])
+    assert policy[1] == pytest.approx([0.5, 0.5])
+    assert policy.sum(axis=1) == pytest.approx(np.ones(2))

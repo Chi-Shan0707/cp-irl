@@ -1,0 +1,969 @@
+\documentclass{article}
+% NeurIPS 2026 workshop submission (double blind).
+\usepackage[dblblindworkshop]{neurips_2026}
+% TODO: fill in the workshop name before submitting.
+\workshoptitle{PUDM}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{amsthm}
+\usepackage{enumitem}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+\newcommand{\method}{CP-IRL}
+\newcommand{\Dnorm}[1]{\|#1\|_{\mathcal D}}
+
+\title{Calibrating What Behavior Can Identify:\\
+Conformal Reward Sets for Inverse Reinforcement Learning}
+
+% Double-blind: identity intentionally omitted from the source.
+\author{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Inverse reinforcement learning (IRL) returns a reward, and a policy is then
+optimized against it as if it were correct. Conformal inverse optimization
+(CIO) offers a principled alternative for one-shot inverse problems: calibrate
+a radius around the point estimate on held-out decisions, then optimize
+robustly over the resulting set. We ask what survives the move to IRL. The
+conformal step transfers untouched; two others break, both because behavior
+pins down a reward only up to transformations that leave every policy value
+unchanged. First, CIO scores a demonstration by an angle between reward
+vectors, which
+depends on coordinates the problem never fixes: a feature reparameterization
+that changes no reward and no demonstrator's policy still moves the calibrated
+angular radius by $24^\circ$ on average. Scoring instead by the spread a reward
+difference induces over achievable policy values restores invariance and keeps
+the score a linear program. Second, which event a quantile certifies is decided
+by which distance to the cone of rewards explaining new behavior is scored: the
+nearest point gives intersection with that cone, the farthest point of the
+normalized cone gives containment of the latent reward. Only the first is a
+linear program, and at a $0.80$ target we measure the two events at $0.82$ and
+$0.44$. We give the enlarged radius that
+prices the relaxation, and the point past which the resulting robust program
+provably says nothing.
+\end{abstract}
+
+\section{Introduction}
+
+IRL turns observed behavior into a reward estimate, and that estimate is then
+optimized to pick a policy. Uncertainty is dropped exactly where it matters,
+because two rewards that explain the demonstrations equally well can recommend
+different actions. Conformal inverse optimization \citep{lin2024conformal} is
+an appealing remedy for the analogous one-shot problem: observe a population of
+decision makers, fit a point estimate on part of it, and on the rest record how
+far that estimate sits from the objectives that would rationalize each held-out
+decision. The conformal quantile of those distances defines an uncertainty set
+with a finite-sample guarantee, and a robust optimization over that set replaces
+the point prescription. The recipe is modular and looks portable. This paper
+reports what happens when it is carried into IRL, component by component
+(Table~\ref{tab:recipe}).
+
+\begin{table}[t]
+\centering
+\small
+\caption{The CIO recipe in IRL. Bold rows mark what we had to change; the rest,
+including the conformal quantile itself, are inherited.}
+\label{tab:recipe}
+\begin{tabular}{@{}p{0.27\linewidth}p{0.40\linewidth}p{0.26\linewidth}@{}}
+\toprule
+CIO ingredient & Counterpart here & Status \\
+\midrule
+Point estimate from decision data & any IRL fit (MaxEnt, Bayesian, \dots) &
+inherited \\
+Inverse-feasible set of a decision & Bellman cone $K(\pi)$, linear in $\theta$ &
+inherited \\
+Score: angle to the estimate & span distance to $K(\pi)$; invariant, still an LP
+& \textbf{redesigned} (\S\ref{sec:score}) \\
+Split-conformal quantile & unchanged & inherited \\
+Calibrated event $\Rightarrow$ parameter set & convex relaxation of a nonconvex
+sup-score, priced by a cone-width bound $\eta$ & \textbf{relaxed + priced}
+(\S\ref{sec:stage2}) \\
+Robust decision & reference-relative robust MDP, one LP & \textbf{redesigned}
+(\S\ref{sec:policy}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+One component transfers for free. Once per-demonstrator scores exist, the
+calibration arithmetic---%
+rank them, take the $\lceil\gamma(N+1)\rceil$-th, invoke exchangeability---is
+split conformal prediction exactly as in \citet{vovk2005algorithmic} and
+\citet{lin2024conformal}; we inherit it wholesale. Sequential decision making
+changes nothing about that argument. The work is in the two components on either
+side of it: which distance gets calibrated, and what the resulting event is
+good for.
+
+\paragraph{The score is measured in the wrong space.} CIO scores a
+demonstration by the angle between the point estimate and the nearest objective
+that rationalizes it. In IRL that angle lives in coordinates the problem does
+not fix. A reward vector can change without changing the difference between any
+two policies' values: add a potential-shaping term, or alter the reward on a
+state no policy reaches. The angle registers such a change; behavior cannot. An
+uncertainty set built from angles can therefore hit its target rate while
+much of its radius covers differences no demonstration could exhibit. This is
+not hypothetical:
+we apply an invertible feature reparameterization that leaves every scalar
+reward and every demonstrator's policy pointwise unchanged, and the calibrated
+angular radius still moves by $24^\circ$ on average (\S\ref{sec:experiments}).
+Two identical problems get two different uncertainty sets. The fix is not a
+better estimator but a prior question: what does behavior actually distinguish?
+Everything observable here factors through the achievable occupancy measures,
+so we measure a reward difference $v$ by the spread of policy values it
+produces, $\Dnorm{v}=\max_\mu
+V_v(\mu)-\min_\mu V_v(\mu)$, a seminorm whose null space is exactly the
+directions behavior cannot see.
+
+\paragraph{Intersection is not containment.} The second break matters more.
+Split conformal certifies that \emph{some} reward in the calibrated set makes the new
+demonstrator optimal; a robust prescription needs the demonstrator's \emph{own}
+reward to lie in the set. In one-shot inverse optimization the two are close;
+in IRL, where one policy is rationalized by an entire cone, they are not. At
+target $0.8$ we measure the first event at $0.82$ and the second at $0.44$, and
+no amount of calibration closes that gap. The two events differ by which
+distance to the cone is calibrated. Scoring the distance to the \emph{nearest} point---%
+the quantity a linear program can compute---certifies intersection. Scoring the
+distance to the \emph{farthest} point of the normalized cone certifies
+containment, under no further assumption, but is a nonconvex maximization. Our
+construction is the convex relaxation together with an explicit account of what
+it costs: a factor of two from renormalizing the witness, plus a certified
+bound $\eta$ on the cone's width, giving $R=\min\{2,2q_\gamma+\eta\}$. With no
+side information, $\eta=2$, and the resulting guarantee is then exactly vacuous
+rather than merely loose.
+
+What we report is diagnostic rather than a performance improvement: half of
+CIO's pipeline moves to IRL untouched, two components must be rebuilt in
+decision space, and the step from intersection to containment is a relaxation
+whose price we state rather than hide. Regret
+against point-estimate IRL is therefore not the yardstick, and
+\S\ref{sec:experiments} reports where our construction does and does not lower
+it.
+
+\section{Related work}
+\label{sec:related}
+
+This work sits between two literatures. Inverse
+optimization recovers objectives from observed decisions
+\citep{ahuja2001inverse,chan2018inverse}, and CIO adds finite-sample
+calibration to it \citep{lin2024conformal}; this is a different problem from
+data-driven robust optimization, where the coefficients are observed or
+predicted rather than latent
+\citep{chenreddy2022datadriven,sun2023predictthencalibrate}. IRL has known
+since \citet{ng2000algorithms} that behavior determines a reward only up to a
+cone, and recent work characterizes those feasible sets and asks what extra
+structure shrinks them---experts of known suboptimality under a generative
+model \citep{poiani2024suboptimal}, a unified LP view of demonstrations and
+feedback \citep{kim2024unified}, or an account of what behavior provably cannot
+resolve \citep{skalse2023invariance} and what that costs a downstream decision
+\citep{lazzati2025robustness,kim2026feasible}. That line
+attaches no finite-sample probability to its set, and CIO never asks whether
+its geometry still means anything when the parameter is identified only up to a
+cone. We ask what happens in between.
+
+For the geometry we borrow rather than reinvent. EPIC canonicalizes shaping away \citep{gleave2021epic}, DARD
+restricts to realizable transitions \citep{wulfe2022dard}, and STARC unifies
+both, showing that any metric with matching worst-case-regret upper \emph{and}
+lower bounds is bilipschitz equivalent to a STARC metric
+\citep{skalse2024starc}. Our occupancy span plays the role of a
+canonicalization--normalization pair in the same spirit, taken relative to the
+known $P$, so we propose no new reward metric; what is new is using
+this geometry as a conformal score over Bellman cones, and being explicit about
+the identification assumption the resulting radius still needs. On the robust
+side, tractability is classically recovered by rectangularity
+\citep{iyengar2005robust,nilim2005robust,wiesemann2013robust}, and
+\citet{gadot2024solving} show that non-rectangular reward ambiguity is
+tractable in occupancy space---the space we also work in, with the difference
+that their ambiguity set is given rather than calibrated. Conformal prediction
+has appeared in RL for other purposes \citep{gupta2023cammarl,
+pan2026uncertaintyaware,zhou2025calibrating}, but we are not aware of prior
+work that calibrates an inverse-feasible reward set from a population of IRL
+demonstrators.
+
+\section{Setup}
+\label{sec:setting}
+
+A tabular MDP $M=(S,A,P,\rho_0,\beta,\phi)$ has known kernel $P$, initial
+distribution $\rho_0$, discount $\beta\in[0,1)$, and features
+$\phi:S\times A\to\mathbb R^d$ inducing $r_\theta(s,a)=\phi(s,a)^\top\theta$.
+A population of demonstrators draws rewards
+$\hat\theta_1,\dots,\hat\theta_N\sim\Lambda$ i.i.d.; demonstrator $k$ acts
+optimally under $\hat\theta_k$, producing a deterministic policy $\pi_k$ that we
+assume is observed exactly rather than estimated from finite trajectories. Let
+$M(P)$ be the polytope of normalized discounted occupancy measures, $\Phi$ the
+$(|S||A|)\times d$ feature matrix, and
+$V_\theta(\mu):=\theta^\top\Phi^\top\mu/(1-\beta)$. The rewards that make an
+observed policy optimal form the cone
+\[
+K(\pi):=\{\theta:Q^\pi_\theta(s,a)\le Q^\pi_\theta(s,\pi(s))\ \forall s,a\}.
+\]
+Substituting the Bellman resolvent removes the unknown value function and makes
+$K(\pi)$ exactly $|S|(|A|-1)$ halfspaces in $\theta$ alone
+(Proposition~\ref{prop:resolvent}), which is the sequential restatement of
+\citeauthor{ng2000algorithms}'s feasible-reward characterization.
+
+\begin{assumption}[Exchangeable calibration unit]
+\label{ass:unit}
+The pairs $(\hat\theta_k,\pi_k)$,
+$k=1,\dots,N_{\mathrm{val}},N_{\mathrm{val}}{+}1$, are i.i.d.\ (hence
+exchangeable), and $M$---in particular $P$---is shared and fixed across all
+demonstrators and the deployment instance.
+\end{assumption}
+
+Each demonstrator therefore plays the role of one (decision, context) pair in
+CIO's setting; per-trajectory exchangeability within a single demonstrator
+would instead be broken by within-trajectory Markov dependence. The pipeline is
+Table~\ref{tab:recipe} read top to bottom: split the population, fit
+$\bar\theta$ on the training split with any IRL method, calibrate on the
+rest---write $N_{\mathrm{val}}$ for the size of that split---convert
+intersection into containment, and solve a robust MDP. The
+inherited CIO baseline uses the spherical cap
+$C(\bar\theta,\alpha)=\{\theta:\|\theta\|_2\le1,\
+\theta^\top\bar\theta\ge\cos\alpha\}$ (Appendix~\ref{app:angular}); that
+specific choice, not the calibrate-then-robustify idea, is what reward
+non-identifiability damages.
+
+\section{Calibrating in decision space}
+\label{sec:method}
+
+\subsection{A distance that behavior can see}
+\label{sec:seminorm}
+
+For $v\in\mathbb R^d$, define
+\[
+\Dnorm{v}:=\max_{\mu\in M(P)}V_v(\mu)-\min_{\mu\in M(P)}V_v(\mu)
+= V^*_v(\rho_0)+V^*_{-v}(\rho_0)
+= h_{D_F}(v),
+\]
+the spread of policy values that $v$ produces, i.e.\ the support function
+$h_{D_F}$ of the feature difference body
+$D_F:=\Phi^\top(M(P)-M(P))/(1-\beta)$, a form we return to in
+\S\ref{sec:policy}. The right-hand form is two value iterations; no linear
+program is needed for the seminorm itself.
+
+\begin{proposition}[Properties of $\Dnorm{\cdot}$]
+\label{prop:da-seminorm}
+$\Dnorm{\cdot}$ is a seminorm on $\mathbb R^d$, and $\Dnorm{v}=0$ exactly when
+$v\in\mathcal N:=\{a: a^\top\Phi^\top(\mu-\nu)=0\ \forall\mu,\nu\in M(P)\}$, the
+subspace of directions that add the same constant to every policy's value.
+$\mathcal N$ contains the potential-shaping subspace and can be strictly larger.
+For any $\theta,\theta'$, with $\mu^*_\theta$ optimal for $\theta$ and
+$\mu_{\theta'}$ optimal for $\theta'$,
+\[
+\mathrm{Reg}_\theta(\pi_{\theta'}):=V_\theta(\mu^*_\theta)-V_\theta(\mu_{\theta'})
+\;\le\;\Dnorm{\theta-\theta'}.
+\]
+Finally $\Dnorm{\cdot}$ is exactly invariant under $\phi\mapsto A\phi$,
+$\theta\mapsto A^{-\top}\theta$ for any invertible $A$.
+\end{proposition}
+
+The regret constant is $1$, with no Cauchy--Schwarz slack and no feature-norm
+Lipschitz factor, because the seminorm is defined as the value spread it has to
+bound. It is also the only such choice, which is what licenses calling any
+other geometry wrong rather than merely different.
+
+\begin{proposition}[Minimality]
+\label{prop:minimal}
+Let $N$ be any seminorm on $\mathbb R^d$ with
+$\mathrm{Reg}_\theta(\pi_{\theta'})\le N(\theta-\theta')$ for all
+$\theta,\theta'$. Then $N(v)\ge\Dnorm{v}$ for every $v$.
+\end{proposition}
+
+\begin{proof}
+Fix $v$ and $\delta>0$, and take $\theta=v$, $\theta'=-\delta v$. Any policy
+optimal for $\theta'$ maximizes $V_{-\delta v}$ and so minimizes $V_v$, while
+$\mu^*_\theta$ maximizes $V_v$; hence
+$\mathrm{Reg}_\theta(\pi_{\theta'})=\max_\mu V_v-\min_\mu V_v=\Dnorm{v}$. The
+hypothesis with $\theta-\theta'=(1+\delta)v$ and homogeneity of $N$ give
+$\Dnorm{v}\le N((1+\delta)v)=(1+\delta)N(v)$. Let $\delta\downarrow0$.
+\end{proof}
+
+So $\Dnorm{\cdot}$ is the pointwise smallest seminorm that bounds worst-case
+regret: any valid alternative is at least as large, and a strictly larger one
+certifies a strictly weaker statement at the same radius. The restriction to
+$\delta>0$ is not cosmetic---at $\delta=0$ every policy is optimal for
+$\theta'=0$ and the construction says nothing. Since shaping directions lie in $\mathcal N$, replacing $\bar\theta$ by
+$\bar\theta+c$ for $c\in\mathcal N$ leaves both the score and the calibrated set
+unchanged; the angular score, computed from $\bar\theta$'s normalized
+coordinates, has no such property. Optimal behavior cannot identify positive
+reward scale either, and we remove that symmetry without building quotient
+coordinates: for any behaviorally nonnull reward $\theta$ we set
+$\theta^\circ:=\theta/\Dnorm{\theta}$, and compare rewards by
+$\Dnorm{\theta^\circ-\theta'^\circ}$, a pseudometric with range $[0,2]$ that
+vanishes exactly when $\theta'=c\theta+a$ for some $c>0$, $a\in\mathcal N$, and
+that inherits the normalized regret bound
+(Proposition~\ref{prop:projective}).
+
+\subsection{Score, quantile, and what they certify}
+\label{sec:score}
+
+Write $\bar\theta^\circ=\bar\theta/\Dnorm{\bar\theta}$ for the \emph{unit-span
+center} and define the \emph{span score} $s_k$ and \emph{span ball} $B_q$,
+\[
+s_k:=\min_{\theta\in K(\pi_k)}\Dnorm{\theta-\bar\theta^\circ},
+\qquad
+B_q:=\{\theta:\Dnorm{\theta-\bar\theta^\circ}\le q\}.
+\]
+Throughout, \emph{coverage} names only the property $\Pr[E]\ge\gamma$ for a
+stated event $E$. The two events at issue are \emph{intersection},
+$K(\pi_{\mathrm{new}})\cap B\ne\emptyset$, and \emph{containment},
+$\hat\theta_{\mathrm{new}}^\circ\in B$. Split conformal delivers coverage of
+whichever event the score's sublevel set defines, and nothing more.
+
+Because $\Dnorm{\cdot}$ has a linear-program epigraph and $K(\pi_k)$ is
+polyhedral, $s_k$ is a single LP in $d+2|S|$ variables, with no second-order
+cone anywhere; this is what would be lost by intersecting the cone with a
+Euclidean ball. Since $0\in K(\pi_k)$ and $\Dnorm{\bar\theta^\circ}=1$, we have
+$s_k\in[0,1]$, and both the score and its quantile are dimensionless and
+unchanged under $\bar\theta\mapsto c\bar\theta+a$ for $c>0$, $a\in\mathcal N$.
+
+\begin{proposition}[Intersection coverage]
+\label{prop:da-coverage}
+Under Assumption~\ref{ass:unit}, let $q_\gamma$ be the $\tau$-th smallest $s_k$
+among $N_{\mathrm{val}}$ calibration demonstrators, with
+$\tau=\lceil\gamma(N_{\mathrm{val}}+1)\rceil$ and the sentinel $+\infty$ if
+$\tau=N_{\mathrm{val}}+1$. For a fresh i.i.d.\ demonstrator,
+$s_{\mathrm{new}}\le q_\gamma$ holds if and only if
+$K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\emptyset$, and
+$\Pr[K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\emptyset]\ge\gamma$.
+\end{proposition}
+
+The probability is the standard split-conformal rank argument
+\citep{vovk2005algorithmic} applied verbatim. What belongs to this construction
+is the equivalence, immediate from $s_k$ being a minimum: coverage of the score
+\emph{is} intersection coverage of the ball, with no lossy conversion in
+between. The contrast is the obvious repair of the angular cap, which
+calibrates the value gap under $\bar\theta$ and converts it to a Euclidean ball
+by inverting a Lipschitz bound (Appendix~\ref{app:angular}). That bound
+licenses gap $\le$ const $\times$ distance and never the reverse, so its radius
+certifies neither event---a measured containment rate of $0.004$ in
+Figure~\ref{fig:metric}(b).
+
+\subsection{From intersection to containment}
+\label{sec:stage2}
+
+$K(\pi)$ is not an equivalence class. Even after removing scale and null
+directions it can contain rewards with genuinely different policy orderings, so
+touching the cone says little about where the demonstrator's reward is. Write
+$F^\circ(\pi):=\{\theta\in K(\pi):\Dnorm{\theta}=1\}$ for the normalized cone,
+understood modulo the null directions.
+
+Which event the quantile certifies depends only on which distance to
+$F^\circ(\pi)$ is scored. The latent reward lies in
+$F^\circ(\pi_{\mathrm{new}})$, so scoring the \emph{largest} distance,
+\[
+s^{\max}(\pi):=\max_{u\in F^\circ(\pi)}\Dnorm{u-\bar\theta^\circ},
+\]
+gives $\Dnorm{\hat\theta_{\mathrm{new}}^\circ-\bar\theta^\circ}\le
+s^{\max}(\pi_{\mathrm{new}})$ pointwise, and the same split-conformal argument
+then certifies containment directly, under Assumption~\ref{ass:unit} alone.
+This is the score we want. It is also the maximization of a convex function
+over a nonconvex set, and we do not solve it. Our $s_k$ scores the
+\emph{smallest} distance instead: a linear program, but it bounds the wrong
+side. One assumption converts one into the other.
+
+\begin{assumption}[Certified cone width]
+\label{ass:cone-width}
+There is a known $\eta\in[0,2]$ with
+$\sup_{u,v\in F^\circ(\pi)}\Dnorm{u-v}\le\eta$ almost surely for the deployment
+population, and each latent reward is behaviorally nonnull.
+\end{assumption}
+
+Under Assumption~\ref{ass:cone-width}, $s^{\max}(\pi)\le2s(\pi)+\eta$
+pointwise: when $s(\pi)<1$ the near witness renormalizes at a cost of
+$2s(\pi)$ and the cone width covers the rest, and when $s(\pi)=1$ the bound
+holds trivially because $s^{\max}\le2$. Since $t\mapsto2t+\eta$ is increasing
+it commutes with order statistics, so the pointwise inequality passes straight
+to the quantile, $q^{\max}_\gamma\le2q_\gamma+\eta=:R$, which is what
+Theorem~\ref{thm:containment} uses. Read this way,
+Assumption~\ref{ass:cone-width} is not information the pipeline needs in order
+to work: it is the price of replacing a nonconvex score by a linear program.
+The factor $2$ renormalizes the witness, and $\eta$ stands in for what an exact
+$s^{\max}$ would have measured. A small $\eta$ can come from side information,
+multiple environments, or active comparisons; with none of these, the only
+universal certificate is $\eta=2$.
+
+\begin{theorem}[Two-stage containment and safe prescription]
+\label{thm:containment}
+Under Assumptions~\ref{ass:unit}--\ref{ass:cone-width}, let $q_\gamma$ be the
+Stage-I quantile and set $R:=\min\{2,\,2q_\gamma+\eta\}$. Then
+$\Pr[\Dnorm{\hat\theta_{\mathrm{new}}^\circ-\bar\theta^\circ}\le R]\ge\gamma$.
+Let $\mu_R\in\arg\max_{\mu\in M(P)}\min_{\theta\in B_R}\big[V_\theta(\mu)
+-V_\theta(\mu_{\mathrm{ref}})\big]$ for a fixed reference
+$\mu_{\mathrm{ref}}\in M(P)$; then
+\[
+\Pr\!\left[V_{\hat\theta_{\mathrm{new}}}(\mu_R)
+\ge V_{\hat\theta_{\mathrm{new}}}(\mu_{\mathrm{ref}})\right]\ge\gamma .
+\]
+\end{theorem}
+
+The argument is short. On the Stage-I event some
+$\tilde\theta\in K(\pi_{\mathrm{new}})$ is within $q_\gamma$ of the unit-span
+center, so if $q_\gamma<1$ the reverse triangle inequality makes $\tilde\theta$
+nonnull; normalizing it moves it by at most another $q_\gamma$, which is where
+the factor $2$ comes from, and Assumption~\ref{ass:cone-width} then covers the
+remaining distance to the latent reward inside the same cone. Minimizing over
+$F^\circ(\pi)$ instead of $K(\pi)$ would remove the factor $2$, giving
+$R=\min\{2,q_\gamma+\eta\}$; maximizing rather than minimizing over
+$F^\circ(\pi)$ removes $\eta$ as well. Both are nonconvex, and both are what
+keeping Stage I a linear program costs.
+
+\subsection{The deployed policy}
+\label{sec:policy}
+
+$B_R$ is unbounded---it contains the whole affine subspace
+$\bar\theta^\circ+\mathcal N$---so worst-case \emph{absolute} value over it is
+unbounded below in general. The reading we take is that absolute value is the
+wrong criterion: a
+direction with no behavioral content can be scaled without bound, and only a
+comparison between two occupancy measures is insensitive to it. We therefore
+optimize worst-case value relative to a reference $\mu_{\mathrm{ref}}$. With
+$x:=\Phi^\top(\mu-\mu_{\mathrm{ref}})/(1-\beta)$ and $D_F$ the feature
+difference body $\Phi^\top(M(P)-M(P))/(1-\beta)$,
+\[
+\min_{\theta\in B_R}\big[V_\theta(\mu)-V_\theta(\mu_{\mathrm{ref}})\big]
+=\big[V_{\bar\theta^\circ}(\mu)-V_{\bar\theta^\circ}(\mu_{\mathrm{ref}})\big]
+-R\,\gamma_{D_F}(x),
+\]
+where $\gamma_{D_F}$ is the Minkowski gauge of $D_F$, the polar dual of
+$\Dnorm{\cdot}$. Since $\mu-\mu_{\mathrm{ref}}$ ranges over $M(P)-M(P)$ by
+construction, the penalty is automatically normalized to $[0,1]$, $R$ reads
+directly in regret units, and no sign condition can arise. The gauge has an LP
+epigraph, so the whole robust problem is one linear program.
+
+\begin{proposition}[Degeneracy threshold]
+\label{prop:degeneracy}
+For the unit-span center, if $R\ge1$ the optimal relative robust value is zero,
+attained by $\mu_{\mathrm{ref}}$; if $R>1$ every optimizer is feature-equivalent
+to the reference. A nontrivial safe improvement therefore requires
+$2q_\gamma+\eta<1$.
+\end{proposition}
+
+Vacuity is therefore auditable: the implementation reports $q_\gamma$, $\eta$,
+$R$, and whether $R<1$. One modelling choice remains. Centering at
+$\bar\theta$'s own optimal occupancy is degenerate, since the reference is then
+optimal for every $R$; all experiments instead center at the calibration
+population's mean occupancy, which asks whether a policy beats what a random
+draw from the population achieves. Since
+Theorem~\ref{thm:containment} guarantees dominance only against whichever
+reference is chosen, a sensitivity analysis over that choice is required before
+deployment.
+
+\section{Experiments}
+\label{sec:experiments}
+
+The experiments are deliberately narrow, each testing one link in the
+calibrate--identify--prescribe chain: whether the calibrated radius survives an
+intervention that changes nothing observable (E1), whether intersection
+coverage implies containment (E2), and how strong an external certificate
+Stage II would need (E3). Each isolates one mechanism rather than benchmarking
+end-to-end regret.
+
+We use random tabular MDPs, a Voronoi-feature gridworld, and Objectworld, each
+with discount $\beta=0.9$, $|S|\le36$, and $d\le5$. We fit MaxEnt IRL and
+Bayesian IRL by Metropolis--Hastings on 20 training demonstrators, calibrate on
+20 at target level $\gamma=0.8$, and evaluate on 20 fresh demonstrators, for 10
+environment seeds: 60 runs and
+1{,}200 test rewards. Draws within a run share a fitted center and radius, so
+intervals are 95\% Student-$t$ intervals over the 30 environment--seed blocks
+after averaging the two estimators within each block. Computation used a
+20-core laptop, no GPU, and no commercial solver. An exact-fit suboptimality LP
+baseline is not reported: it returned a span-zero center in one of 30 fits, for
+which unit-span normalization is undefined, and we record that as an abstention
+rather than perturbing the reward by an arbitrary epsilon.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig1_metric.pdf}
+\caption{The two failures. \textbf{(a)} A random invertible feature
+reparameterization of condition number $\kappa$ leaves every pointwise reward
+and policy unchanged, yet the inherited angular cap moves; the span score does
+not, up to solver tolerance. The value-gap score is also invariant---it is
+computed from values rather than from coordinates---and sits lower still
+because it needs no LP; \S\ref{sec:score} and Appendix~\ref{app:angular} show
+that its converted radius nonetheless certifies neither event, so invariance
+alone is not sufficient. Shading spans mean to worst over 10 seeds.
+\textbf{(b)} At $\gamma=0.8$ every construction attains intersection coverage
+at target, but containment at the same Stage-I radius falls short. The
+right-hand bars measure containment in the invariant span distance; the
+value-gap bar uses that baseline's Euclidean conversion, which certifies
+neither event. Error bars are 95\% $t$ intervals over 30 environment--seed
+blocks.}
+\label{fig:metric}
+\end{figure}
+
+\paragraph{E1: an intervention that changes nothing.} We draw one random
+invertible $A$ at each $\kappa\in\{1,2,5,10,50,200\}$ and set
+$\phi\mapsto A\phi$, $\theta\mapsto A^{-\top}\theta$. Coordinates change;
+every scalar reward $\phi(s,a)^\top\theta$ does not (maximum numerical
+discrepancy $2.2\times10^{-14}$), so a behaviorally meaningful radius should not
+move. At $\kappa=200$ the angular radius changes by $0.424$ radians
+($24.3^\circ$) on average and $1.071$ radians in the worst seed, while the span
+radius changes by at most $2.0\times10^{-8}$
+(Figure~\ref{fig:metric}a). This is a falsification test rather than a
+favorable data distribution: the compared problems are the same problem.
+
+\paragraph{E2: intersection holds, containment does not.} At
+$\gamma=0.8$, pooled empirical intersection rates are $0.812\pm0.042$,
+$0.838\pm0.046$, and $0.819\pm0.036$ for the angular, value-gap, and span
+scores; the first and third are exactly inverse-set intersection, the second
+only score coverage. Containment at the same Stage-I radius is only
+$0.368\pm0.095$ for the angular cap and $0.438\pm0.081$ for the span ball,
+while the value-gap-to-Euclidean conversion contains $0.004\pm0.005$
+(Figure~\ref{fig:metric}b). Conformal ranking behaves exactly as the theory
+says; containment does not follow from $q_\gamma$ alone. The separation is a property of which distance is scored, not
+of the calibration: the same rank argument applied to $s^{\max}$ would place the
+second bar at the target as well.
+
+\paragraph{E3: how much identification is missing?} The calibrated $q_\gamma$
+has pooled mean $0.316$, median $0.289$, and range $[0.019,0.871]$, so the
+observable budget $b:=\max\{1-2q_\gamma,0\}$ is usually positive but small. A
+certificate must satisfy $\eta<b$ for the safe prescription to differ from the
+reference: with $\eta=0$, $0.2$, and $0.5$, respectively $85.0\%$, $76.7\%$,
+and $36.7\%$ of runs remain nontrivial, and the environment matters (at
+$\eta=0.2$, $95\%$ for random MDPs, $75\%$ for Objectworld, $60\%$ for
+gridworld). The universal certificate $\eta=2$ gives $R=2$ everywhere, with
+containment at radius $R$ equal to $1.000$, reference dominance $1.000$, and nontriviality
+$0.000$---which verifies the theorem and the implementation while deploying
+exactly the reference occupancy: the guarantee holds and says nothing. The full
+frontier is
+in Figure~\ref{fig:identification-frontier}.
+
+\paragraph{What these experiments do not show.} Using the Stage-I radius
+directly can lower or raise true-reward regret; in the balanced six-cell audit
+it lowers mean regret in two cells of six and raises it in four
+(Table~\ref{tab:regret}). That policy is not covered by
+Theorem~\ref{thm:containment}, which uses $R$, and our relative objective
+guarantees dominance over the reference rather than over the point-estimate
+policy. We do not report the scale, shift, and RLHF relabeling probes here:
+they are exploratory and outside the claims of Theorem~\ref{thm:containment}.
+
+\section{Discussion}
+\label{sec:discussion}
+
+Metric choice is real and measurable (E1), but a conformal intersection radius
+is not yet an uncertainty set for the latent reward (E2).
+Theorem~\ref{thm:containment} prices that gap and E3 makes the price
+observable: safe prescription needs a certified cone width below the
+run-specific budget $1-2q_\gamma$. The universal width $2$ proves containment
+but pushes the robust solution back to the reference: safe, but with no
+decision content. That is a fact about what behavior can identify, not a bug in
+the algorithm. The open problem is therefore not another IRL point estimator,
+and it has two independent routes.
+
+The algorithmic route is to compute $s^{\max}$ itself, which would need no
+$\eta$ at all. Since $\Dnorm{v}$ is a maximum of finitely many linear
+functionals of $v$---one per pair of vertices of $M(P)$---its unit ball is
+polyhedral, so $F^\circ(\pi)$ is the intersection of a polyhedral cone with that
+boundary, a union of finitely many polyhedral pieces, and the maximum of a
+convex function over such a union is attained at a vertex of one of them. For
+small $d$ this is enumerable; the complexity in general, and whether a useful
+relaxation sits between the LP and the exact program, we leave open. The data
+route is to certify a small $\eta$: repeated observations of one demonstrator
+under several dynamics, active comparisons, or externally known restrictions on
+the reward. The two routes are complementary---one shrinks what must be
+assumed, the other strengthens what can be assumed---and either moves the same
+frontier in Figure~\ref{fig:identification-frontier}.
+
+Our exchangeability unit is demanding---a demonstrator with a fully observed
+exact optimal policy in a shared known tabular MDP---and finite trajectories,
+approximate optimality, subgroup-conditional coverage, and MDP shift each need separate
+analysis. Covariate-shift weighting \citep{tibshirani2019conformal} may address
+the statistical part of transfer but not the identifiability conditions studied
+by \citet{schlaginhaufen2024towards}.
+
+The closest setting we have not tested is preference-based reward modelling
+\citep{christiano2017deep,rafailov2023direct}, where the same two questions
+recur with a different calibration unit: one annotator, one calibration point.
+A Bradley--Terry reward model is identified only up to the transformations that
+leave every modelled comparison unchanged, so the rewards consistent with an
+annotator's preferences again form a set rather than a point, and the
+distinction this paper is about---whether a calibrated radius merely meets that
+set or contains the annotator's own reward---applies unchanged. Two things do
+change. The comparison set is a polyhedral cone only when the comparisons are
+noiseless and the model is linear in features, so $K(\pi)$ must be replaced by
+whatever the preference likelihood makes feasible; and annotators are not
+exchangeable in the way Assumption~\ref{ass:unit} needs when they are recruited
+in batches or disagree systematically. We raise this because a reward model
+trained on preferences is then optimized against by a policy, which is
+structurally the pipeline we have been auditing, not because our experiments
+say anything about it. The pattern
+still generalizes past IRL: whenever an inverse problem is only partially
+identified, a calibrate-then-prescribe pipeline must answer three questions
+separately---in which geometry the score is measured, how the quantile is
+computed, and which event the calibrated set certifies about the latent
+parameter---and conformal prediction answers only the second. CIO can leave the
+other two implicit because in one-shot inverse optimization the
+inverse-feasible sets are thin; IRL is the regime where they are not.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+
+\section{Deferred constructions}
+\label{app:angular}
+
+\begin{proposition}[Resolvent-based score reduction]
+\label{prop:resolvent}
+Fix $\pi$; let $P_\pi(s,s')=P(s,\pi(s),s')$, let $\Phi_\pi$ be the feature
+matrix restricted to $\pi$'s actions, and let $W_\pi:=(I-\beta
+P_\pi)^{-1}\Phi_\pi$. Then $V^\pi_\theta=W_\pi\theta$ and
+$Q^\pi_\theta(s,a)=\Psi_\pi(s,a)^\top\theta$ with
+$\Psi_\pi(s,a):=\phi(s,a)+\beta P(s,a,\cdot)W_\pi$, both linear in $\theta$, so
+\[
+K(\pi)=\{\theta:\
+\Psi_\pi(s,a)^\top\theta\le\Psi_\pi(s,\pi(s))^\top\theta\ \forall s,a\}
+\]
+exactly. The angular baseline additionally uses
+$\hat\Theta_2(\pi)=K(\pi)\cap\{\theta:\|\theta\|_2\le1\}$. Both have $d$
+decision variables instead of $d+|S|$ and $|S|(|A|-1)$ nontrivial linear
+inequalities, after one resolvent solve per distinct policy.
+\end{proposition}
+
+We verify this against a joint-$(\theta,V)$ reference to solver precision, at
+$2$--$5.5\times$ the speed at a few hundred states, and update it across
+demonstrators by Sherman--Morrison--Woodbury in $O(k|S|^2+k^3)$ when policies
+differ at $k$ states.
+
+\begin{proposition}[Projective span geometry]
+\label{prop:projective}
+$d_\circ(\theta,\theta'):=\Dnorm{\theta^\circ-\theta'^\circ}$ is a pseudometric
+with range $[0,2]$, invariant to independent positive rescaling, addition of
+elements of $\mathcal N$, and invertible feature reparameterization. For
+nonnull rewards $d_\circ(\theta,\theta')=0$ iff $\theta'=c\theta+a$ for some
+$c>0$ and $a\in\mathcal N$, and
+$\mathrm{Reg}_{\theta}(\pi_{\theta'})/\Dnorm{\theta}\le d_\circ(\theta,\theta')$.
+\end{proposition}
+
+\begin{theorem}[Concavity under reward-only ambiguity; failure with dynamics ambiguity]
+\label{thm:convexity}
+\textbf{(a)} For \emph{any} nonempty compact $C\subseteq\mathbb R^d$, if $P$ is
+fixed and known then $\max_{\mu\in M(P)}\min_{\theta\in C}\theta^\top\Phi^\top\mu$
+is a concave maximization over the fixed polytope $M(P)$, hence a convex outer
+problem whenever $C$ admits a tractable linear-minimization oracle.
+\textbf{(b)} The guarantee need not survive when ambiguity couples reward and
+transition: there is a 2-state, 2-action MDP and a convex one-dimensional
+non-product ambiguity set over $(\theta,P)$ whose worst-case value function is
+not concave.
+\end{theorem}
+
+Part (a) is why the robust step is routine once written in occupancy space, and
+covers the fixed-kernel regime for an arbitrary compact set. Part (b) is
+existential (Appendix~\ref{app:proof-convexity}); rectangular and other
+structured cases remain tractable, and failure of concavity is not a hardness
+proof. \citet{xu2026learning} instead use $d$-rectangular sets whose reward and
+transition components vary together across data sources. Part~(a) does not
+cover that setting, since fixing $P$ removes exactly the coupling; what it does
+cover is the reward-only restriction of such a set, which is one instance of
+the compact $C$.
+
+\paragraph{The inherited angular baseline.} For this baseline only, we replace
+every nonzero point estimate by its Euclidean normalization,
+$\|\bar\theta\|_2=1$. With the score
+$c_k=\max_{\theta\in\hat\Theta_2(\pi_k)}\theta^\top\bar\theta$ and
+$\alpha_\gamma:=\arccos(q_\gamma)$, split-conformal calibration on $c_k$ is
+CIO's exchangeability argument transplanted verbatim
+\citep{vovk2005algorithmic}, giving
+$\mathbb P(\hat\Theta_{2,\mathrm{new}}\cap
+C(\bar\theta,\alpha_\gamma)\ne\emptyset)\ge\gamma$; we omit the routine
+restatement. This is intersection nonemptiness, not containment. Because the
+zero reward is Bellman-feasible for every policy, any cap with $\alpha\ge\pi/2$
+makes the intersection event automatic, so intersection coverage alone never
+establishes reward identification. Under the sign condition $a(x)\le-\|x\|_2\cos\alpha$
+(writing $x=a(x)\bar\theta+x_\perp$), the support function of the cap reduces to
+$a(x)\cos\alpha-b(x)\sin\alpha$ with $b(x)=\|x_\perp\|_2$, so the robust policy
+solves the point estimate with a fixed-weight $\ell_2$ penalty
+$\tan\alpha_\gamma\cdot b(\Phi^\top\mu)$, set by the conformal quantile rather
+than tuned.
+
+\paragraph{The value-gap repair and why it is incomplete.} Replacing the
+angular score by the suboptimality gap under $\bar\theta$,
+$c_k:=V_{\bar\theta}(\mu^*_{\bar\theta})-V_{\bar\theta}(\mu_{\pi_k})$, removes
+shaping contamination for free: shaping directions earn a constant on every
+$\mu\in M(P)$ (an immediate consequence of the flow-conservation constraints
+defining $M(P)$), so adding one to $\bar\theta$ leaves every $c_k$ unchanged.
+But converting this score to a Euclidean ball of radius
+$\rho:=q_\gamma/\bar\nu$ needs a Lipschitz constant
+$\bar\nu:=\|\phi\|_{2,\infty}/(1-\beta)$, and the bound licenses gap $\le$
+const $\times$ distance and never the reverse, so $q_\gamma$ alone certifies
+nothing about the set (measured containment $0.004$,
+Figure~\ref{fig:metric}b). Its robust program is at least
+unconditional---$\min_{\|\theta-\bar\theta\|_2\le\rho}\theta^\top
+x=\bar\theta^\top x-\rho\|x\|_2$ by Cauchy--Schwarz---but an unconditional
+penalty on an uncertified radius is not a certificate.
+
+\section{Additional experiments}
+\label{app:extra}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig2_identification_frontier.pdf}
+\caption{Identification-budget frontier. \textbf{(a)} Distribution of the
+dimensionless Stage-I radius over 20 runs per environment (two estimators and
+10 seeds); even a zero-width cone can be nontrivial only below $q_\gamma=0.5$.
+\textbf{(b)} For each hypothetical certified width $\eta$, the fraction of runs
+satisfying $2q_\gamma+\eta<1$. The curve does not estimate or validate $\eta$;
+it states how strong an independent identification mechanism must be. Gray
+shading is a 95\% $t$ interval for the pooled fraction over 30
+environment--seed blocks.}
+\label{fig:identification-frontier}
+\end{figure}
+
+\paragraph{Policy regret, for completeness.} Table~\ref{tab:regret} reports
+mean true-reward regret in the balanced six-cell audit. The Stage-I span policy
+beats the point estimate in two of six cells and loses in four; the certified
+Stage-II policy at $R$ is worse than the point estimate everywhere, which is
+what Proposition~\ref{prop:degeneracy} predicts, since a radius large enough to
+certify containment is large enough to pull the solution toward the reference.
+None of these comparisons is covered by Theorem~\ref{thm:containment}, whose
+guarantee is dominance over $\mu_{\mathrm{ref}}$ and not over the point
+estimate; we report the table so that the claim in \S\ref{sec:experiments} has
+a source, not as evidence of a performance gain.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Mean true-reward regret over 10 seeds per cell, at $\gamma=0.8$.
+Lower is better; bold marks cells where the span policy beats the point
+estimate. \emph{Span} uses the Stage-I radius $q_\gamma$ and carries no
+containment guarantee; \emph{safe} uses the certified $R$ of
+Theorem~\ref{thm:containment} with $\eta=2$.}
+\label{tab:regret}
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+Environment & Estimator & point & span & safe ($R$) & angular & value-gap \\
+\midrule
+gridworld   & Bayesian & 0.019 & 0.033 & 0.051 & 0.027 & 0.016 \\
+gridworld   & MaxEnt   & 0.038 & \textbf{0.033} & 0.051 & 0.046 & 0.031 \\
+Objectworld & Bayesian & 0.028 & \textbf{0.018} & 0.035 & 0.079 & 0.028 \\
+Objectworld & MaxEnt   & 0.018 & 0.019 & 0.035 & 0.043 & 0.031 \\
+random MDP  & Bayesian & 0.003 & 0.009 & 0.034 & 0.049 & 0.004 \\
+random MDP  & MaxEnt   & 0.004 & 0.008 & 0.034 & 0.025 & 0.005 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Concentration baseline.} Exact conformal calibration is tighter than
+a DKW bound everywhere tested; on the unbounded value-gap score DKW inflates
+true-reward regret $4$--$460\times$ over the point estimate, because the same
+additive slack $\sqrt{\log(2/\delta)/(2N)}$ shifts a raw-value threshold far
+more than a cosine in $[-1,1]$.
+
+\paragraph{Reproduction.} From the repository root, the main artifacts are
+generated by \texttt{experiments/run\_reparam\_invariance.py},
+\texttt{experiments/run\_containment\_audit.py}, and
+\texttt{experiments/run\_center\_validity.py}; the figures are generated by
+\texttt{paper/make\_fig1\_metric.py} and
+\texttt{paper/make\_fig2\_identification\_frontier.py}. All scripts set NumPy
+random generators from the recorded integer seed, and the audit JSON stores the
+schema version, split sizes, target $\gamma$, environment, estimator, and seed
+in every row.
+
+\section{Proofs}
+\label{app:proofs}
+
+Every identity and inequality stated in the main text is also checked
+numerically, independently of the library routines it describes, by
+\texttt{paper/verify\_formulas.py}: the two-solve form of $\Dnorm{\cdot}$
+against brute-force enumeration of $M(P)$'s vertices, the seminorm axioms, the
+regret bound, reparametrization invariance, the zero set $\mathcal N$, and the
+gauge form of the deployed robust objective.
+
+\subsection{Proof of Proposition~\ref{prop:resolvent}}
+\label{app:proof-resolvent}
+
+The value function $V^\pi_\theta$ solves the linear Bellman equation
+$V^\pi_\theta = \Phi_\pi\theta + \beta P_\pi V^\pi_\theta$. Since
+$\beta\in[0,1)$ and $P_\pi$ is stochastic, $\rho(\beta P_\pi)\le\beta<1$, so
+$I-\beta P_\pi$ is invertible via a Neumann series and
+$V^\pi_\theta = (I-\beta P_\pi)^{-1}\Phi_\pi\theta = W_\pi\theta$. Substituting
+into the Bellman equation for $Q^\pi_\theta$,
+\begin{align*}
+Q^\pi_\theta(s,a) &= \phi(s,a)^\top\theta + \beta P(s,a,\cdot) V^\pi_\theta
+= \phi(s,a)^\top\theta + \beta P(s,a,\cdot) W_\pi\theta
+= \Psi_\pi(s,a)^\top\theta,
+\end{align*}
+which is linear in $\theta$. By policy improvement, $\pi$ is Bellman-optimal
+for $\theta$ iff $Q^\pi_\theta(s,a)\le Q^\pi_\theta(s,\pi(s))$ for all $s,a$;
+substituting the linear expression yields the stated cone with no relaxation,
+since the substitution is an equality. The angular calibration score
+$c_k=\max_{\theta\in\hat\Theta_2(\pi_k)}\theta^\top\bar\theta$ is then a linear
+objective over $|S||A|$ linear inequalities plus a unit-ball constraint in
+$\theta\in\mathbb R^d$ alone: an SOCP of size $d$, independent of $|S|$ once
+$\Psi_{\pi_k}$ is precomputed. $\blacksquare$
+
+\subsection{Proof of Theorem~\ref{thm:convexity}}
+\label{app:proof-convexity}
+
+\textbf{(a)} Define $g_C(x) := \min_{\theta\in C}\theta^\top x$, a pointwise
+infimum of the affine family $\{x\mapsto\theta^\top x : \theta\in C\}$ and
+hence concave for any nonempty $C$, convex or not. Composing with the linear
+map $\mu\mapsto\Phi^\top\mu$ preserves concavity, so
+$\mu \mapsto \min_{\theta\in C}\theta^\top\Phi^\top\mu$ is concave in $\mu$.
+Since $M(P)$ is a fixed polytope not depending on $\theta$, the ambiguity set
+never touches the feasible region, only the objective, and
+$\max_{\mu\in M(P)} g_C(\Phi^\top\mu)$ is a concave maximization over a fixed
+compact convex set. This establishes the convex geometry; efficient solution
+also requires an efficient representation or linear-minimization oracle for
+$C$. No Bellman recursion or rectangularity assumption enters.
+
+\textbf{(b)} Let state $s_0$ be active and $s_1$ absorbing with zero reward.
+At $s_0$, action $a_0$ earns zero and moves to $s_1$; action $a_1$ earns
+$1+t$ and returns to $s_0$ with probability $1-t$ (otherwise moving to
+$s_1$), where the same ambiguity parameter $t\in[0,1]$ couples reward and
+dynamics. Both actions at $s_1$ self-loop with zero reward. Starting from
+$s_0$, let a stationary policy choose $a_1$ with probability $p$; its
+worst-case discounted value is
+\[
+W(p) = \min_{t\in[0,1]} \frac{p(1+t)}{1-\beta p(1-t)}.
+\]
+At $\beta=0.9$ we have $W(0)=0$, $W(5/9)=10/9$ (constant in $t$), and
+$W(5/18)=\min_{t}10(1+t)/(27+9t)=10/27$, attained at $t=0$. Since
+$5/18=\tfrac12(0+5/9)$, concavity would require $W(5/18)\ge 5/9$, but
+$10/27<5/9$. Hence $W$ is not concave, and the outer maximization is not a
+convex program in this regime. $\blacksquare$
+
+\subsection{Proof of Proposition~\ref{prop:da-seminorm}}
+\label{app:proof-da-seminorm}
+
+\textbf{Seminorm properties.} Nonnegativity is immediate. Positive homogeneity:
+$V_v(\mu)$ is linear in $v$, so for $c>0$, $\max_\mu V_{cv}-\min_\mu
+V_{cv}=c(\max_\mu V_v-\min_\mu V_v)=c\Dnorm{v}$. Subadditivity: the supremum of
+a sum is at most the sum of suprema and the infimum of a sum at least the sum
+of infima, so
+$\Dnorm{u+v}\le(\max_\mu V_u+\max_\mu V_v)-(\min_\mu V_u+\min_\mu
+V_v)=\Dnorm{u}+\Dnorm{v}$.
+
+\textbf{Zero set.} $\Dnorm{v}=0$ iff $V_v(\mu)$ is constant over $M(P)$ iff
+$v^\top\Phi^\top(\mu-\nu)=0$ for every $\mu,\nu\in M(P)$, which is the
+definition of $v\in\mathcal N$. Every shaping direction $c$ (via potential
+$\Phi_{\mathrm{pot}}$) satisfies
+$c^\top\Phi^\top\mu=-(1-\beta)\rho_0^\top\Phi_{\mathrm{pot}}$ for every
+$\mu\in M(P)$: expand the flow-conservation constraint
+$\sum_a\mu(s',a)-\beta\sum_{s,a}P(s,a,s')\mu(s,a)=(1-\beta)\rho_0(s')$ and sum
+against $\Phi_{\mathrm{pot}}$. The constant cancels in
+$c^\top\Phi^\top(\mu-\nu)$, giving $S_{\mathrm{pot}}\subseteq\mathcal N$. The
+containment can be strict: if a state $s$ is unreachable under every policy then
+$\mu(s,\cdot)=0$ throughout $M(P)$, so any $v$ whose induced reward is supported
+on $s$ lies in $\mathcal N$ without being a potential-shaping term. We do not
+claim strictness in general, only that $\mathcal N$ is the exact zero set, which
+is what the invariance claims use.
+
+\textbf{Regret bound.} With $\mu^*_\theta$ optimal for $\theta$ and
+$\mu_{\theta'}$ optimal for $\theta'$,
+\begin{align*}
+\mathrm{Reg}_\theta(\pi_{\theta'})
+&= V_\theta(\mu^*_\theta) - V_\theta(\mu_{\theta'}) \\
+&= V_{\theta-\theta'}(\mu^*_\theta) - V_{\theta-\theta'}(\mu_{\theta'})
+  + \underbrace{\big[V_{\theta'}(\mu^*_\theta)-V_{\theta'}(\mu_{\theta'})\big]}_{\le\,0
+  \text{ since $\mu_{\theta'}$ maximizes }V_{\theta'}} \\
+&\le \max_\mu V_{\theta-\theta'}(\mu) - \min_\mu V_{\theta-\theta'}(\mu)
+\;=\; \Dnorm{\theta-\theta'},
+\end{align*}
+the last step because $\mu^*_\theta,\mu_{\theta'}\in M(P)$.
+
+\textbf{Reparametrization invariance.} For invertible $A$, writing
+$\tilde\phi=A\phi$ and $\tilde v=A^{-\top}v$, we get
+$\tilde\phi(s,a)^\top\tilde v=\phi(s,a)^\top v$ for every $(s,a)$, so the reward
+function is unchanged, hence $V_v(\mu)$ at every $\mu\in M(P)$, hence
+$\Dnorm{v}$. $\blacksquare$
+
+\subsection{Proof of Proposition~\ref{prop:projective}}
+
+On the quotient by $\mathcal N$, $\Dnorm{\cdot}$ is a norm and every nonnull
+positive ray has a unit representative, so the triangle inequality, symmetry,
+and nonnegativity of $d_\circ$ follow from the seminorm, and
+$d_\circ\le\Dnorm{\theta^\circ}+\Dnorm{\theta'^\circ}=2$. Independent positive
+rescaling does not change either unit representative; adding an element of
+$\mathcal N$ changes a representative only by a seminorm-zero vector; feature
+invariance follows from Proposition~\ref{prop:da-seminorm}. If
+$d_\circ(\theta,\theta')=0$ then
+$\theta/\Dnorm{\theta}-\theta'/\Dnorm{\theta'}\in\mathcal N$, and rearranging
+gives $\theta'=c\theta+a$ with $c=\Dnorm{\theta'}/\Dnorm{\theta}>0$ and
+$a\in\mathcal N$; the converse is immediate. Finally, optimal policies are
+unchanged by positive normalization, so applying
+Proposition~\ref{prop:da-seminorm} to the two normalized rewards gives
+$\mathrm{Reg}_{\theta}(\pi_{\theta'})/\Dnorm{\theta}
+=\mathrm{Reg}_{\theta^\circ}(\pi_{\theta'^\circ})
+\le\Dnorm{\theta^\circ-\theta'^\circ}$. $\blacksquare$
+
+\subsection{Proof of Proposition~\ref{prop:da-coverage}}
+\label{app:proof-da-coverage}
+
+\textbf{Equivalence.} By definition $s_k=\min_{\theta\in K(\pi_k)}
+\Dnorm{\theta-\bar\theta^\circ}$, so $s_k\le q$ iff some $\theta\in K(\pi_k)$
+achieves $\Dnorm{\theta-\bar\theta^\circ}\le q$, i.e.\ iff $K(\pi_k)\cap
+B_q\ne\emptyset$. The epigraph formulation is a feasible, bounded-below LP over
+a closed polyhedron, so the optimum is attained; the implementation adds a
+large numerical safety cap and rejects a solution if that cap is active.
+
+\textbf{Intersection coverage.} $\bar\theta$ is a fixed measurable function of the training
+split, disjoint from the calibration split and the fresh demonstrator.
+Conditional on $\bar\theta$, each $s_k$ is a deterministic measurable function
+of one i.i.d.\ demonstrator draw, so
+$s_1,\dots,s_{N_{\mathrm{val}}},s_{\mathrm{new}}$ are exchangeable. The
+ascending rank of $s_{\mathrm{new}}$ among these $N_{\mathrm{val}}+1$ reals is
+uniform on $\{1,\dots,N_{\mathrm{val}}+1\}$, so
+$\mathbb P[\mathrm{rank}(s_{\mathrm{new}})\le\tau]=\tau/(N_{\mathrm{val}}+1)\ge
+\gamma$ by the choice of $\tau$, and $s_{\mathrm{new}}\le q_\gamma$ iff
+$\mathrm{rank}(s_{\mathrm{new}})\le\tau$ (ties broken uniformly at random, as
+is standard). $\blacksquare$
+
+\subsection{Proof of Theorem~\ref{thm:containment}}
+\label{app:proof-containment}
+
+On the Stage-I event, choose a witness $\tilde\theta\in K(\pi_{\mathrm{new}})$
+with $\Dnorm{\tilde\theta-\bar\theta^\circ}\le q_\gamma$. If $q_\gamma<1$, the
+reverse triangle inequality gives $\Dnorm{\tilde\theta}\ge1-q_\gamma>0$, and
+since $K(\pi)$ is a cone, $\tilde\theta^\circ$ belongs to
+$F^\circ(\pi_{\mathrm{new}})$. Moreover
+\[
+\Dnorm{\tilde\theta^\circ-\bar\theta^\circ}
+\le \Dnorm{\tilde\theta^\circ-\tilde\theta}+\Dnorm{\tilde\theta-\bar\theta^\circ}
+=|1-\Dnorm{\tilde\theta}|+q_\gamma\le2q_\gamma.
+\]
+The latent normalized reward lies in the same cone, so
+Assumption~\ref{ass:cone-width} and the triangle inequality give
+$\Dnorm{\hat\theta_{\mathrm{new}}^\circ-\bar\theta^\circ}\le2q_\gamma+\eta$;
+when $q_\gamma\ge1$ this is subsumed by the cap $R=2$ from the universal
+projective diameter. Proposition~\ref{prop:da-coverage} assigns probability at
+least $\gamma$ to the Stage-I event.
+
+For the robust statement, $\mu_{\mathrm{ref}}$ is feasible and has relative
+value zero under every reward, so the optimum at $\mu_R$ is nonnegative. On the
+containment event $\hat\theta_{\mathrm{new}}^\circ\in B_R$, hence its relative
+value at $\mu_R$ is at least the worst-case relative value and therefore at
+least zero; positive rescaling back to $\hat\theta_{\mathrm{new}}$ preserves the
+inequality. Subtracting both values from the same optimal value gives the
+equivalent regret statement. $\blacksquare$
+
+\subsection{Proof of Proposition~\ref{prop:degeneracy}}
+
+Let $x=\Phi^\top(\mu-\mu_{\mathrm{ref}})/(1-\beta)$. Polar duality and
+$\Dnorm{\bar\theta^\circ}=1$ give
+$V_{\bar\theta^\circ}(\mu)-V_{\bar\theta^\circ}(\mu_{\mathrm{ref}})
+\le\gamma_{D_F}(x)$, so the relative robust objective is at most
+$(1-R)\gamma_{D_F}(x)\le0$ when $R\ge1$. The reference has $x=0$ and attains
+zero. If $R>1$, equality requires $\gamma_{D_F}(x)=0$, i.e.\ the two occupancies
+have the same feature vector modulo the null directions; at $R=1$ additional
+exposed-face ties can attain zero. $\blacksquare$
+
+\end{document}

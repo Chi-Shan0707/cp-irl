@@ -1,845 +1,560 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>从反向优化到决策序列：Conformal Inverse Optimization & CP-IRL 数学原理全解</title>
-    <!-- MathJax 3 for LaTeX Rendering -->
-    <script>
-        MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-                tags: 'ams'
-            },
-            svg: {
-                fontCache: 'global'
-            }
-        };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <style>
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #111111;
-            --secondary-text: #444444;
-            --border-color: #cccccc;
-            --light-border: #e5e5e5;
-            --box-bg: #fafafa;
-            --code-bg: #f4f4f4;
-            --accent-color: #000000;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CP-IRL 论文的中文数学友好导读：占用测度、Bellman 可行奖励锥、conformal 校准与相对鲁棒决策。">
+  <title>CP-IRL 中文数学导读：校准行为真正能识别的奖励信息</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        tags: 'ams',
+        macros: {
+          R: '\\mathbb{R}',
+          E: '\\mathbb{E}',
+          P: '\\mathbb{P}',
+          M: '\\mathcal{M}',
+          Dnorm: ['\\left\\lVert #1 \\right\\rVert_{\\mathcal D}', 1]
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Georgia", serif, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.75;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 40px 20px 80px 20px;
-        }
-
-        header {
-            border-bottom: 2px solid var(--text-color);
-            padding-bottom: 24px;
-            margin-bottom: 40px;
-        }
-
-        h1 {
-            font-size: 2.2rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-            letter-spacing: -0.02em;
-        }
-
-        .subtitle {
-            font-size: 1.1rem;
-            color: var(--secondary-text);
-            font-style: italic;
-            margin-bottom: 8px;
-        }
-
-        .meta {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 16px;
-        }
-
-        nav.toc {
-            background-color: var(--box-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 20px 28px;
-            margin-bottom: 40px;
-        }
-
-        nav.toc h2 {
-            font-size: 1.2rem;
-            margin-top: 0;
-            margin-bottom: 16px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
-        }
-
-        nav.toc ol {
-            margin: 0;
-            padding-left: 20px;
-        }
-
-        nav.toc li {
-            margin-bottom: 8px;
-        }
-
-        nav.toc a {
-            color: var(--text-color);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        nav.toc a:hover {
-            text-decoration: underline;
-        }
-
-        h2 {
-            font-size: 1.6rem;
-            border-bottom: 1px solid var(--text-color);
-            padding-bottom: 8px;
-            margin-top: 48px;
-            margin-bottom: 24px;
-        }
-
-        h3 {
-            font-size: 1.3rem;
-            margin-top: 32px;
-            margin-bottom: 16px;
-        }
-
-        h4 {
-            font-size: 1.1rem;
-            margin-top: 24px;
-            margin-bottom: 12px;
-        }
-
-        p {
-            margin-bottom: 18px;
-            text-align: justify;
-        }
-
-        .box {
-            background-color: var(--box-bg);
-            border: 1px solid var(--border-color);
-            border-left: 4px solid var(--accent-color);
-            padding: 18px 24px;
-            margin: 24px 0;
-            border-radius: 2px;
-        }
-
-        .box-title {
-            font-weight: 700;
-            font-size: 1.05rem;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-
-        .theorem {
-            border-left-color: #000000;
-        }
-
-        .proof {
-            background-color: #ffffff;
-            border: 1px solid var(--light-border);
-            border-left: 3px solid #888888;
-            padding: 16px 20px;
-            margin: 20px 0;
-            font-size: 0.98rem;
-        }
-
-        .proof-title {
-            font-weight: 600;
-            font-style: italic;
-            margin-bottom: 8px;
-        }
-
-        .counterexample {
-            background-color: #fff;
-            border: 1px dashed var(--text-color);
-            padding: 20px;
-            margin: 24px 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 28px 0;
-            font-size: 0.95rem;
-        }
-
-        th, td {
-            border: 1px solid var(--border-color);
-            padding: 10px 14px;
-            text-align: left;
-        }
-
-        th {
-            background-color: var(--box-bg);
-            font-weight: 600;
-        }
-
-        tr:nth-child(even) {
-            background-color: #fdfdfd;
-        }
-
-        ul, ol {
-            margin-bottom: 18px;
-            padding-left: 24px;
-        }
-
-        li {
-            margin-bottom: 6px;
-        }
-
-        hr {
-            border: none;
-            border-top: 1px solid var(--light-border);
-            margin: 40px 0;
-        }
-
-        footer {
-            margin-top: 60px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.85rem;
-            color: var(--secondary-text);
-            text-align: center;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            border: 1px solid var(--text-color);
-            border-radius: 3px;
-            margin-right: 6px;
-            text-transform: uppercase;
-        }
-
-        .sym-code {
-            font-family: "Courier New", Courier, monospace;
-            font-weight: bold;
-            background-color: #f2f2f2;
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-    </style>
+      },
+      chtml: { scale: 0.98, mtextInheritFont: true }
+    };
+  </script>
+  <script id="MathJax-script" async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      color:#111;
+      background:#fff;
+      font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,sans-serif;
+      font-size:17px;
+      line-height:1.8;
+    }
+    a { color:#111; text-decoration:underline; text-underline-offset:.15em; }
+    .page { width:min(900px,calc(100% - 40px)); margin:auto; padding:48px 0 72px; }
+    .hero { margin-bottom:38px; padding-bottom:25px; border-bottom:2px solid #111; }
+    .eyebrow { margin:0 0 8px; font-size:.9rem; }
+    h1 { margin:0; font-size:2.25rem; line-height:1.3; }
+    .subtitle { margin:16px 0 0; font-size:1.05rem; }
+    .layout { display:block; }
+    nav {
+      margin:0 0 45px;
+      padding:0 0 25px;
+      border-bottom:1px solid #777;
+    }
+    nav strong { display:block; margin-bottom:8px; }
+    nav ol { columns:2; column-gap:40px; margin:0; padding-left:1.4rem; }
+    nav li { margin:4px 0; break-inside:avoid; }
+    main { min-width:0; }
+    section {
+      margin-bottom:58px;
+    }
+    h2 { margin:0 0 20px; padding-bottom:8px; border-bottom:1px solid #111; font-size:1.65rem; line-height:1.4; }
+    h2 .num {
+      margin-right:.3em;
+    }
+    h3 { margin:30px 0 12px; font-size:1.2rem; line-height:1.45; }
+    p { margin:13px 0; } ul,ol { padding-left:1.45rem; } li { margin:7px 0; }
+    .lead { font-size:1.05rem; }
+    .one-line {
+      margin:22px 0; padding:14px 18px; border-left:4px solid #111;
+      font-size:1.06rem; font-weight:650;
+    }
+    .callout {
+      margin:22px 0; padding:10px 18px; border-left:3px solid #111;
+    }
+    .callout .title { margin-bottom:4px; font-weight:750; }
+    .math-card {
+      margin:22px 0; padding:12px 16px; border:1px solid #777; overflow-x:auto;
+    }
+    .math-card .label { font-size:.88rem; font-weight:700; }
+    .pipeline { display:grid; grid-template-columns:repeat(4,1fr); margin:22px 0; border:1px solid #111; }
+    .pipeline div {
+      padding:12px 10px; text-align:center; border-right:1px solid #111;
+      font-size:.92rem;
+    }
+    .pipeline div:last-child { border-right:0; }
+    table { width:100%; margin:22px 0; border-collapse:collapse; font-size:.91rem; }
+    th,td { padding:9px 10px; border:1px solid #333; text-align:left; vertical-align:top; }
+    th { font-weight:750; }
+    details { margin:18px 0; border:1px solid #777; }
+    summary { cursor:pointer; padding:12px 15px; font-weight:700; }
+    details>div { padding:0 18px 18px; }
+    .pill {
+      display:inline-block; margin-right:10px; font-size:.88rem;
+    }
+    footer { margin-top:28px; padding-top:20px; border-top:1px solid #777; font-size:.88rem; }
+    @media(max-width:860px) {
+      .page { width:min(100% - 28px,760px); padding-top:28px; }
+      nav ol { columns:1; }
+      .pipeline { grid-template-columns:1fr 1fr; }
+      .pipeline div:nth-child(2) { border-right:0; }
+      .pipeline div:nth-child(-n+2) { border-bottom:1px solid #111; }
+      table { display:block; overflow-x:auto; }
+    }
+    @media(max-width:520px) {
+      body { font-size:16px; }
+      h1 { font-size:1.8rem; }
+      .pipeline { display:block; }
+      .pipeline div { border-right:0; border-bottom:1px solid #111; }
+      .pipeline div:last-child { border-bottom:0; }
+    }
+  </style>
 </head>
 <body>
+<div class="page">
+  <header class="hero">
+    <p class="eyebrow">CP-IRL 论文中文解读</p>
+    <h1>校准行为真正能识别的奖励信息</h1>
+    <p class="subtitle">原文：<a href="paper/main.pdf">Calibrating What Behavior Identifies: Conformal Reward Sets for Inverse Reinforcement Learning</a></p>
+    <p class="subtitle">本文按“问题、几何、校准、部署、保证边界、实验结论”的顺序解释论文。证明只保留关键直觉和必要推导。</p>
+  </header>
 
-<div class="container">
-    <header>
-        <h1>从反向优化到决策序列：Conformal Inverse Optimization & CP-IRL 数学原理全解</h1>
-        <div class="subtitle">解构《Conformal Inverse Optimization》(NeurIPS 2024) 与 《CP-IRL》(NeurIPS 2026)</div>
-        <div class="meta">
-            <span class="badge">白纸黑字简约版</span>
-            <span>适配背景：高等代数 (线性代数) + 数学分析 (最优化与凸分析) + 概率论基础</span>
-        </div>
-    </header>
-
-    <nav class="toc">
-        <h2>目录</h2>
-        <ol>
-            <li><a href="#sec0">第 0 章 符号索引与概念字典 (Notation & Glossary)</a></li>
-            <li><a href="#sec1">第 1 章 预备知识：大一数学系的基石</a>
-                <ol>
-                    <li><a href="#sec1-1">1.1 正向优化与对偶理论 (Forward Problem & LP Duality)</a></li>
-                    <li><a href="#sec1-2">1.2 马尔可夫决策过程 (MDP) 与贝尔曼算子</a></li>
-                    <li><a href="#sec1-3">1.3 符合性预测 (Split Conformal Prediction) 的概率推导</a></li>
-                </ol>
-            </li>
-            <li><a href="#sec2">第 2 章 单步决策的反向优化：Conformal Inverse Optimization (CIO)</a>
-                <ol>
-                    <li><a href="#sec2-1">2.1 传统点估计 IO 的致命缺陷 (AOG 与 POG 无界)</a></li>
-                    <li><a href="#sec2-2">2.2 CIO 的校准问题与求解定理 (Theorem 1)</a></li>
-                    <li><a href="#sec2-3">2.3 无分布假设的有限样本覆盖率证明 (Theorem 2)</a></li>
-                    <li><a href="#sec2-4">2.4 经典几何反例 (Example 1) 的严格手算推导</a></li>
-                </ol>
-            </li>
-            <li><a href="#sec3">第 3 章 序列决策的逆强化学习：CP-IRL</a>
-                <ol>
-                    <li><a href="#sec3-1">3.1 瓶颈突破 1：贝尔曼预解式 (Bellman Resolvent) 降维</a></li>
-                    <li><a href="#sec3-2">3.2 瓶颈突破 2：占用测量空间 (Occupancy Measure) 与凸性边界</a></li>
-                    <li><a href="#sec3-3">3.3 紧致性反例：转移矩阵不确定性破坏凸性的 Jensen 违背证明</a></li>
-                    <li><a href="#sec3-4">3.4 理论边界：系统偏差 (Bias) vs 纯噪声 (Noise)</a></li>
-                </ol>
-            </li>
-            <li><a href="#sec4">第 4 章 CIO 与 CP-IRL 的统一数学对比</a></li>
-        </ol>
+  <div class="layout">
+    <nav aria-label="页面目录">
+      <strong>阅读路线</strong>
+      <ol>
+        <li><a href="#roadmap">先记住哪一句话？</a></li>
+        <li><a href="#problem">从策略反推奖励</a></li>
+        <li><a href="#occupancy">占用测度线性化 MDP</a></li>
+        <li><a href="#nonidentification">为什么奖励不可识别？</a></li>
+        <li><a href="#geometry">占用跨度半范数</a></li>
+        <li><a href="#cone">Bellman 可行奖励锥</a></li>
+        <li><a href="#conformal">Conformal 校准与覆盖</a></li>
+        <li><a href="#robust">相对鲁棒决策 LP</a></li>
+        <li><a href="#limits">四种“保证”不要混淆</a></li>
+        <li><a href="#experiments">实验说明什么？</a></li>
+        <li><a href="#novelty">创新、已有工作与局限</a></li>
+        <li><a href="#cheatsheet">公式速查表</a></li>
+      </ol>
     </nav>
 
-    <!-- INNOVATION HIGHLIGHTS -->
-    <div class="box theorem" style="border-left-color: #b02e0c; background-color: #fff8f6;">
-        <div class="box-title" style="color: #b02e0c;">开篇速览：这项工作的三个核心创新点</div>
-        <p>如果只有五分钟时间，请记住这三件事——它们是把 CIO 从"单步决策"推广到"序列决策 (MDP)"过程中真正解决的三个此前无人解决的数学难题：</p>
+    <main>
+      <section id="roadmap">
+        <h2><span class="num">0</span>五分钟速览</h2>
+        <div class="one-line">论文的核心：先在行为可识别的射影几何中校准“中心到逆可行锥的距离”，再用逆 fiber 宽度把相交半径扩成包含半径，最后才做鲁棒处方。</div>
+        <p class="lead">逆强化学习（IRL）观察的是行为，却试图恢复奖励。问题在于，同一个行为通常可以由很多奖励解释。因此，可信的不确定性说明必须先回答：<strong>这个奖励差会不会改变策略之间的价值比较？</strong></p>
+        <div class="pipeline">
+          <div>训练集<br>拟合中心 \(\bar\theta\)</div>
+          <div>校准集<br>计算距离分数 \(s_k\)</div>
+          <div>Conformal 分位数<br>得到 \(q_\gamma\)</div>
+          <div>部署<br>求相对鲁棒策略</div>
+        </div>
+        <h3>本文建立的逻辑链</h3>
         <ol>
-            <li>
-                <strong>用一个矩阵恒等式把"不可能计算"变成"轻松计算"。</strong>
-                校准每一位演示者需要求解一个同时包含奖励参数 $\theta$（$d$ 维）与价值函数 $V$（$|S|$ 维，可能高达数千甚至数万维）的联合优化问题。本工作证明：只要策略 $\pi$ 固定，价值函数就是 $\theta$ 的<strong>严格线性函数</strong>（第 1.2 节的贝尔曼预解式），从而把这个问题精确地（无近似！）压缩到仅 $d$ 维——通常 $d \le 10$。这不是启发式加速，而是数学上完全等价的降维，且已经过与朴素求解方式的数值交叉验证。
-            </li>
-            <li>
-                <strong>划出一条"凸性存亡线"，并用一个可手算验证的反例证明它无法再宽松。</strong>
-                只要不确定性只存在于奖励参数（转移动态完全已知），鲁棒 MDP 就必然是凸规划——这一点对任意形状的不确定性集合都成立（第 3.2 节）。但本工作进一步证明：这条线<strong>刚好卡在临界点上</strong>——只要让不确定性哪怕以最微弱的方式（一维、线性耦合）触及转移概率，凸性就会被破坏。第 3.3 节给出了一个两状态、两动作的最小反例，用纯有理数手算验证了 Jensen 不等式的违背（$10/27 < 1/2$），把这个边界钉死。
-            </li>
-            <li>
-                <strong>诚实地划定"鲁棒对冲什么时候真正有用"的适用边界，而不是笼统宣称"更鲁棒总是更好"。</strong>
-                在随机 MDP、方格世界、Objectworld 三种环境、六个独立消融维度的重复实验中，本工作发现鲁棒对冲的收益<strong>严格依赖于点估计误差的性质</strong>：系统性偏差下大幅获益，纯粹无偏噪声下反而净亏损（见 3.4 节的司机类比与图 1 的真实实验曲线）。这一发现没有被淡化处理，而是作为论文的核心实验结论之一被明确报告——这正是严肃科学工作应有的态度。
-            </li>
+          <li>用半范数 \(\Dnorm{\cdot}\) 忽略给所有策略添加同一常数的方向，再用单位跨度归一化消除正比例尺度。</li>
+          <li>把“策略 \(\pi\) 在哪些奖励下最优”写成 Bellman 线性不等式组成的锥 \(K(\pi)\)。</li>
+          <li>以点估计到该锥的距离作为 conformal 分数，得到新演示者可行奖励锥的有限样本相交覆盖 \(q_\gamma\)。</li>
+          <li>用已认证的归一化逆 fiber 直径 \(\eta\)，把相交半径扩成潜在奖励包含半径 \(R\)。</li>
+          <li>在半径 \(R\) 上求参考相对鲁棒策略；若 \(R\ge1\)，框架明确报告保证退化并返回参考策略。</li>
         </ol>
-    </div>
-
-    <!-- SECTION 0 -->
-    <section id="sec0">
-        <h2>第 0 章 符号索引与概念字典 (Notation & Glossary)</h2>
-        <p>为了防止在大一高代/数分知识与顶会论文符号之间产生混淆，本章整理了两篇论文中用到的全部数学符号、定义域及物理含义。</p>
-
-        <h3>0.1 最优化与单步决策符号 (Optimization & One-Shot Decision)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>符号</th>
-                    <th>所属域 / 维度</th>
-                    <th>物理与数学含义</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="sym-code">$\theta$</span></td>
-                    <td>$\mathbb{R}^d$</td>
-                    <td><strong>目标函数参数/奖励权重向量</strong>。衡量各项特征（如路线时间、成本、偏好）在决策者心中的权重。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\theta^*$</span></td>
-                    <td>$\mathbb{R}^d, \|\theta^*\|_2 = 1$</td>
-                    <td><strong>客观真实参数 (Ground-truth Parameter)</strong>。客观世界真正的成本/奖励向量。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\hat{\theta}$</span></td>
-                    <td>$\mathbb{R}^d$</td>
-                    <td><strong>决策者感知参数 (Perceived Parameter)</strong>。具体决策者主观认知的参数，受个体噪声或偏见影响。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\bar{\theta}$</span></td>
-                    <td>$\mathbb{R}^d, \|\bar{\theta}\|_2 = 1$</td>
-                    <td><strong>反向优化点估计 (Point Estimate)</strong>。算法从训练集中拟合出来的单一中心参数。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$u$</span></td>
-                    <td>$\mathcal{U} \subseteq \mathbb{R}^m$</td>
-                    <td><strong>外生环境/上下文参数 (Exogenous Context)</strong>。正向问题的外部条件，如导航起点终点、背包容量。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$x$</span></td>
-                    <td>$\mathbb{R}^n$</td>
-                    <td><strong>决策向量 (Decision Vector)</strong>。决策者做出的选择，如路径选择向量、背包物品选择向量。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\mathcal{X}(u)$</span></td>
-                    <td>$\mathcal{X}(u) \subseteq \mathbb{R}^n$</td>
-                    <td><strong>可行决策区域 (Feasible Region)</strong>。由约束条件 $Ax \ge b$ 确定的凸集或多面体。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$f(\theta, x)$</span></td>
-                    <td>$\mathbb{R}^n \times \mathbb{R}^d \to \mathbb{R}$</td>
-                    <td><strong>正向目标函数/成本函数</strong>。假设为 $\theta$ 的线性函数，即 $f(\theta, x) = \theta^\top x$。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\mathcal{X}^{\text{OPT}}(\theta, u)$</span></td>
-                    <td>$\mathcal{X}^{\text{OPT}} \subseteq \mathcal{X}(u)$</td>
-                    <td><strong>正向最优解集合</strong>。$\arg\min_{x \in \mathcal{X}(u)} f(\theta, x)$。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\Theta^{\text{OPT}}(\hat{x}, u)$</span></td>
-                    <td>$\Theta^{\text{OPT}} \subseteq \mathbb{R}^d$</td>
-                    <td><strong>反向可行参数集 (Inverse Feasible Set)</strong>。能使观察到的决策 $\hat{x}$ 达到正向最优的所有 $\theta$ 集合。</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h3>0.2 统计学与符合性预测符号 (Statistics & Conformal Prediction)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>符号</th>
-                    <th>所属域 / 维度</th>
-                    <th>物理与数学含义</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="sym-code">$\mathcal{D}_{\text{train}}, \mathcal{D}_{\text{val}}$</span></td>
-                    <td>数据集集合</td>
-                    <td><strong>训练集与校准/验证集</strong>。大小分别为 $N_{\text{train}}, N_{\text{val}}$。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\gamma$</span></td>
-                    <td>$[0, 1]$</td>
-                    <td><strong>目标置信度水平 (Confidence Level)</strong>。希望不确定性集覆盖未来真实参数的最小概率（如 80% 或 90%）。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\alpha$ / $\alpha_\gamma$</span></td>
-                    <td>$[0, \pi]$</td>
-                    <td><strong>球冠半顶角 (Cap Angle)</strong>。控制球面不确定性集半径的角度；$\alpha_\gamma$ 为经校准后满足置信度的最小角度。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\mathcal{C}(\bar{\theta}, \alpha)$</span></td>
-                    <td>$\mathbb{R}^d$ 上的球面凸集</td>
-                    <td><strong>符合性不确定性集 (Uncertainty Set)</strong>。定义为 $\{\theta : \|\theta\|_2 = 1, \theta^\top \bar{\theta} \ge \cos \alpha\}$。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$c_k$</span></td>
-                    <td>$[-1, 1]$</td>
-                    <td><strong>第 $k$ 个样本的校准拟合得分</strong>。该样本反向可行集与点估计中心的最大余弦相似度。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\tau$</span></td>
-                    <td>$\mathbb{N}^+$</td>
-                    <td><strong>符合性排序阈值位置</strong>。$\tau = \lceil \gamma(N_{\text{val}} + 1) \rceil$。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\text{RFO}$</span></td>
-                    <td>优化模型</td>
-                    <td><strong>鲁棒正向优化 (Robust Forward Optimization)</strong>。$\min_x \max_{\theta \in \mathcal{C}} f(\theta, x)$。</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h3>0.3 序列决策 MDP 与 CP-IRL 符号 (Sequential MDP & IRL)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>符号</th>
-                    <th>所属域 / 维度</th>
-                    <th>物理与数学含义</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="sym-code">$\mathcal{S}, \mathcal{A}$</span></td>
-                    <td>有限集合</td>
-                    <td><strong>状态空间与动作空间</strong>。大小分别用 $|S|, |A|$ 表示。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$P(s'|s,a)$</span></td>
-                    <td>$|S| \times |A| \times |S|$ 张量</td>
-                    <td><strong>状态转移概率核 (Transition Kernel)</strong>。在状态 $s$ 采取动作 $a$ 转移到 $s'$ 的概率。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\beta$</span></td>
-                    <td>$(0, 1)$</td>
-                    <td><strong>折扣因子 (Discount Factor)</strong>。远期奖励的折现率。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\phi(s,a)$</span></td>
-                    <td>$\mathbb{R}^d$</td>
-                    <td><strong>状态-动作特征向量</strong>。将物理环境映射为 $d$ 维特征。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$r_\theta(s,a)$</span></td>
-                    <td>$\mathbb{R}$</td>
-                    <td><strong>线形奖励函数</strong>。$r_\theta(s,a) = \phi(s,a)^\top \theta$。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\pi(a|s)$</span></td>
-                    <td>$\mathcal{S} \to \Delta(\mathcal{A})$</td>
-                    <td><strong>策略 (Policy)</strong>。在状态 $s$ 下动作的概率分布。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$V^\pi_\theta(s)$</span></td>
-                    <td>$\mathbb{R}^{|S|}$</td>
-                    <td><strong>状态价值函数 (State-Value Function)</strong>。在策略 $\pi$ 和奖励参数 $\theta$ 下的折扣累积回报。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$Q^\pi_\theta(s,a)$</span></td>
-                    <td>$\mathbb{R}^{|S| \times |A|}$</td>
-                    <td><strong>动作价值函数 (Action-Value Function)</strong>。在状态 $s$ 采取 $a$ 后的预期累积回报。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$W_\pi$</span></td>
-                    <td>$\mathbb{R}^{|S| \times d}$</td>
-                    <td><strong>贝尔曼预解式矩阵 (Bellman Resolvent)</strong>。$W_\pi = (I - \beta P_\pi)^{-1} \Phi_\pi$。使得 $V^\pi_\theta = W_\pi \theta$。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$M_\pi(s,a)$</span></td>
-                    <td>$\mathbb{R}^d$</td>
-                    <td><strong>动作价值特征向量</strong>。使得 $Q^\pi_\theta(s,a) = M_\pi(s,a)^\top \theta$。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$d(s,a)$ / $d_\pi$</span></td>
-                    <td>$\mathbb{R}^{|S| \times |A|}$</td>
-                    <td><strong>折扣占用测量 (Occupancy Measure)</strong>。策略 $\pi$ 在状态-动作对上的访问频率。</td>
-                </tr>
-                <tr>
-                    <td><span class="sym-code">$\mathcal{M}(P)$</span></td>
-                    <td>$\mathbb{R}^{|S| \times |A|}$ 上的多面体</td>
-                    <td><strong>占用测量凸多面体</strong>。转移矩阵 $P$ 下所有物理可行占用测量的集合。</td>
-                </tr>
-            </tbody>
-        </table>
-    </section>
-
-    <!-- SECTION 1 -->
-    <section id="sec1">
-        <h2>第 1 章 预备知识：大一数学系的基石</h2>
-        <p>为了让刚学完高等代数和数学分析的大一同学毫无障碍地阅读机器学习顶会论文，本章首先建立严谨的数学符号与概念映射。</p>
-
-        <h3 id="sec1-1">1.1 正向优化与对偶理论 (Forward Problem & LP Duality)</h3>
-        <p><strong>正向优化问题 (Forward Optimization, FO)</strong> 是指：已知目标函数参数 $\theta \in \mathbb{R}^d$ 和环境/约束参数 $u \in \mathcal{U}$，求解最优决策 $x \in \mathbb{R}^n$：</p>
-        $$\text{FO}(\theta, u): \min_{x \in \mathcal{X}(u)} f(\theta, x)$$
-        <p>在两篇论文中，目标函数 $f(\theta, x)$ 均假设为关于 $\theta$ 的<strong>线性函数</strong>，即 $f(\theta, x) = \theta^\top x$（或 $f(\theta, x) = \sum_{i=1}^d \theta_i f_i(x)$）。可行域 $\mathcal{X}(u)$ 为凸集或多面体。</p>
-        <p>最优解集合定义为：</p>
-        $$\mathcal{X}^{\text{OPT}}(\theta, u) := \arg\min_{x \in \mathcal{X}(u)} f(\theta, x)$$
-
-        <div class="box">
-            <div class="box-title">数学分析回顾：对偶理论与 KKT 条件</div>
-            <p>当 $\text{FO}$ 为线性规划 (LP) 时：$\min_{x} c^\top x \quad \text{s.t.} \quad A x \ge b, x \ge 0$。</p>
-            <p>其对偶问题为：$\max_{y} b^\top y \quad \text{s.t.} \quad A^\top y \le c, y \ge 0$。</p>
-            <p><strong>强对偶定理 (Strong Duality)</strong> 保证原问题最优值等于对偶问题最优值。决策 $x$ 是最优解的充要条件存在对偶变量 $y$ 满足对偶可行性与强对偶等式。</p>
+        <div class="callout warning">
+          <div class="title">先消除一个常见误解</div>
+          <p>仅靠 conformal 排名，能直接证明的是可行锥相交。若再给出可信的 fiber 宽度 \(\eta\)，才可升级为“以至少 \(\gamma\) 的概率不差于指定参考策略”。它仍不等于恢复唯一真实奖励，也不等于优于点估计策略。</p>
         </div>
+      </section>
 
-        <h3 id="sec1-2">1.2 马尔可夫决策过程 (MDP) 与贝尔曼算子</h3>
-        <p>单步决策拓展到序列决策时，数学模型变为 MDP $\mathcal{M} = (\mathcal{S}, \mathcal{A}, P, \beta, \phi)$：</p>
+      <section id="problem">
+        <h2><span class="num">1</span>问题：我们只看到策略，却想理解奖励</h2>
+        <h3>1.1 共享的有限 MDP</h3>
+        <div class="math-card">\[M=(S,A,P,\rho_0,\beta,\phi).\]</div>
+        <table>
+          <thead><tr><th>符号</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td>\(S,A\)</td><td>有限状态集合与动作集合。</td></tr>
+            <tr><td>\(P(s'|s,a)\)</td><td>已知状态转移概率。</td></tr>
+            <tr><td>\(\rho_0\)</td><td>初始状态分布。</td></tr>
+            <tr><td>\(\beta\in[0,1)\)</td><td>折扣因子。</td></tr>
+            <tr><td>\(\phi(s,a)\in\R^d\)</td><td>已知状态—动作特征。</td></tr>
+            <tr><td>\(\theta\in\R^d\)</td><td>奖励权重，且 \(r_\theta(s,a)=\phi(s,a)^\top\theta\)。</td></tr>
+          </tbody>
+        </table>
+        <p>第 \(k\) 位演示者有感知奖励 \(\hat\theta_k\)，并给出最优确定性策略 \(\pi_k=\pi^*(\hat\theta_k)\)。统计单位是<strong>演示者</strong>，不是轨迹中的每个时间步。</p>
+        <div class="callout limit">
+          <div class="title">当前观测假设</div>
+          <p>策略被完整、无误地观察；演示者在自己的奖励下精确最优；所有人共享同一个已知表格型 MDP。有限轨迹、近似最优行为、函数逼近和 MDP 偏移尚未被理论覆盖。</p>
+        </div>
+        <h3>1.2 点估计为什么不够？</h3>
+        <p>普通 IRL 从训练演示者拟合单个 \(\bar\theta\)，再部署 \(\pi_{\bar\theta}\)。这把“很多奖励都能解释行为”的事实压成了一个点。CP-IRL 转而用另一组校准演示者学习一个有有限样本含义的集合。</p>
+        <div class="callout intuition">
+          <div class="title">类比：只看到处方</div>
+          <p>只看到医生处方、看不到完整诊断依据时，许多不同判断都可能导向同一处方。“处方与某判断兼容”不等于“恢复了医生心中的唯一判断”。策略与奖励也是这种关系。</p>
+        </div>
+      </section>
+
+      <section id="occupancy">
+        <h2><span class="num">2</span>占用测度：把无限时间的 MDP 变成线性代数</h2>
+        <h3>2.1 定义</h3>
+        <div class="math-card">
+          \[
+          \mu_\pi(s,a):=(1-\beta)\E_\pi\!\left[\sum_{t=0}^{\infty}\beta^t
+          \mathbf1\{s_t=s,a_t=a\}\right].
+          \]
+        </div>
+        <p>它可理解为按折扣随机抽一个时间点后，智能体出现在 \((s,a)\) 的概率；因此 \(\sum_{s,a}\mu_\pi(s,a)=1\)。</p>
+        <h3>2.2 所有可行占用测度形成多面体</h3>
+        <div class="math-card">
+          \[
+          \sum_a\mu(s',a)=(1-\beta)\rho_0(s')
+          +\beta\sum_{s,a}P(s'|s,a)\mu(s,a),\qquad \mu\ge0.
+          \]
+        </div>
+        <p>满足流量守恒的所有 \(\mu\) 构成凸多面体 \(\M(P)\)。动态策略空间因此被改写成线性约束集合。</p>
+        <h3>2.3 回报也是线性的</h3>
+        <div class="math-card">\[V_\theta(\mu)=\frac{\theta^\top\Phi^\top\mu}{1-\beta}.\]</div>
+        <p>\(\Phi^\top\mu\) 是策略的期望特征向量，所以最优策略可由线性规划 \(\max_{\mu\in\M(P)}\theta^\top\Phi^\top\mu\) 求得。</p>
+        <div class="callout intuition">
+          <div class="title">本节只需记住</div>
+          <p>\(\mu\) 把无限长轨迹压缩成访问频率；\(\Phi^\top\mu\) 再把它压缩成期望特征；策略价值就是奖励权重与期望特征的内积。</p>
+        </div>
+      </section>
+
+      <section id="nonidentification">
+        <h2><span class="num">3</span>为什么行为不能唯一识别奖励？</h2>
+        <h3>3.1 加性不可识别方向</h3>
+        <p>若某个方向 \(v\) 对所有可行占用测度都给出同一个值，</p>
+        <div class="math-card">\[V_v(\mu)=\text{常数},\qquad\forall\mu\in\M(P),\]</div>
+        <p>那么把 \(v\) 加到奖励上，只会给每个策略价值加同一常数，不改变策略排序。潜势奖励塑形、不可达状态上的某些奖励都可能产生这种方向。</p>
+        <h3>3.2 正比例缩放也不可识别</h3>
+        <p>对任意 \(c>0\)，\(\theta\) 和 \(c\theta\) 诱导相同的策略排序。因此修订后的方法先令 \(\theta^\circ=\theta/\Dnorm{\theta}\)，只比较单位跨度代表元。代码和公式都不需要显式构造商空间，但零距离关系已经隐式完成了识别。</p>
+        <div class="callout warning">
+          <div class="title">两种“行为不变”</div>
+          <ul>
+            <li><strong>加性空方向：</strong>给所有策略加同一常数；本文把它们压成零。</li>
+            <li><strong>正比例缩放：</strong>把所有价值差乘同一个正数；单位跨度归一化把它压成同一条正射线。</li>
+          </ul>
+        </div>
+        <h3>3.3 两策略小例子</h3>
+        <p>若只有两个可行期望特征 \(z_1=(1,0)\)、\(z_2=(0,1)\)，且暂取 \(\beta=0\)，则奖励 \(v=(v_1,v_2)\) 真正影响选择的只有 \(v_1-v_2\)：</p>
+        <div class="math-card">\[\max(v_1,v_2)-\min(v_1,v_2)=|v_1-v_2|.\]</div>
+        <p>加上 \(c(1,1)\) 会让两策略价值同时增加 \(c\)，却不改变差值。这就是下一节半范数的最小模型。</p>
+      </section>
+
+      <section id="geometry">
+        <h2><span class="num">4</span>占用跨度半范数：只度量会改变策略比较的差异</h2>
+        <h3>4.1 定义</h3>
+        <div class="math-card"><div class="label">占用跨度半范数</div>
+          \[\Dnorm{v}:=\max_{\mu\in\M(P)}V_v(\mu)-\min_{\mu\in\M(P)}V_v(\mu).\]
+        </div>
+        <p>它问：在奖励差 \(v\) 下，最偏好与最不偏好的策略之间最多能拉开多大价值差。</p>
+        <h3>4.2 为什么是“半范数”？</h3>
+        <p>它满足正齐次性和三角不等式，但可能有非零 \(v\) 满足</p>
+        <div class="math-card">\[\Dnorm{v}=0\iff V_v(\mu)\text{ 在所有 }\mu\in\M(P)\text{ 上相同}.\]</div>
+        <p>这正是设计目标：行为无法区分的加性方向不应消耗不确定性半径。</p>
+        <h3>4.3 常数 1 的 regret 上界</h3>
+        <div class="math-card">
+          \[
+          \operatorname{Reg}_{\theta}(\pi_{\theta'})
+          :=V_\theta(\pi_\theta^*)-V_\theta(\pi_{\theta'})
+          \le\Dnorm{\theta-\theta'}.
+          \]
+        </div>
+        <details>
+          <summary>展开看三行证明</summary>
+          <div>
+            \[
+            \begin{aligned}
+            \operatorname{Reg}_{\theta}(\pi_{\theta'})
+            &amp;=V_{\theta-\theta'}(\pi_\theta^*)-V_{\theta-\theta'}(\pi_{\theta'})\\
+            &amp;\quad+V_{\theta'}(\pi_\theta^*)-V_{\theta'}(\pi_{\theta'}).
+            \end{aligned}
+            \]
+            <p>最后一项不大于零，因为 \(\pi_{\theta'}\) 在 \(\theta'\) 下最优；前两项不超过 \(V_{\theta-\theta'}\) 在所有可行策略上的最大值减最小值。</p>
+          </div>
+        </details>
+        <h3>4.4 为什么它对特征重参数化不敏感？</h3>
+        <p>令 \(\tilde\phi=A\phi\)、\(\tilde\theta=A^{-\top}\theta\)，其中 \(A\) 可逆，则</p>
+        <div class="math-card">\[\tilde\phi(s,a)^\top\tilde\theta=\phi(s,a)^\top\theta.\]</div>
+        <p>奖励函数和所有策略价值都不变，因此占用跨度不变。普通欧氏角度则会随坐标轴伸缩而改变。</p>
+        <h3>4.5 射影跨度距离</h3>
+        <div class="math-card">
+          \[
+          \theta^\circ=\frac{\theta}{\Dnorm{\theta}},\qquad
+          d_\circ(\theta,\theta')=\Dnorm{\theta^\circ-\theta'^\circ}\in[0,2].
+          \]
+        </div>
+        <p>对非空奖励，\(d_\circ(\theta,\theta')=0\) 当且仅当 \(\theta'=c\theta+a\)，其中 \(c>0\)、\(a\) 是加性空方向。它同时忽略两种行为不变变换，并满足归一化 regret 上界</p>
+        <div class="math-card">
+          \[\frac{\operatorname{Reg}_\theta(\pi_{\theta'})}{\Dnorm{\theta}}\le d_\circ(\theta,\theta').\]
+        </div>
+        <div class="callout prior">
+          <div class="title">与 STARC 的关系</div>
+          <p>占用跨度是 STARC 一类行为相关几何的规范基础，单位跨度给出正尺度的射影化。本文的新意不是重新发明奖励距离，而是把这套几何同时用于 Bellman 逆 fiber 校准和下游鲁棒惩罚。</p>
+        </div>
+      </section>
+
+      <section id="cone">
+        <h2><span class="num">5</span>Bellman 可行奖励锥：哪些奖励能解释观测策略？</h2>
+        <h3>5.1 从“策略最优”到线性不等式</h3>
+        <div class="math-card">\[Q^\pi_\theta(s,a)\le Q^\pi_\theta(s,\pi(s)),\qquad\forall s,a.\]</div>
+        <h3>5.2 Bellman 预解式</h3>
+        <p>固定 \(\pi\)，令</p>
+        <div class="math-card">
+          \[
+          W_\pi=(I-\beta P_\pi)^{-1}\Phi_\pi,\qquad
+          V^\pi_\theta=W_\pi\theta,
+          \]
+          \[
+          Q^\pi_\theta(s,a)=\Psi_\pi(s,a)^\top\theta,\quad
+          \Psi_\pi(s,a)=\phi(s,a)+\beta P(s,a,\cdot)W_\pi.
+          \]
+        </div>
+        <p>于是解释策略 \(\pi\) 的奖励构成多面锥</p>
+        <div class="math-card">
+          \[
+          K(\pi)=\{\theta:
+          \Psi_\pi(s,a)^\top\theta\le
+          \Psi_\pi(s,\pi(s))^\top\theta,\ \forall s,a\}.
+          \]
+        </div>
+        <h3>5.3 必须区分的两个集合</h3>
+        <table>
+          <thead><tr><th>集合</th><th>用途</th><th>计算性质</th></tr></thead>
+          <tbody>
+            <tr><td>\(K(\pi)\)</td><td>决策感知距离分数</td><td>无界多面锥；配合跨度上图得到 LP。</td></tr>
+            <tr><td>\(\hat\Theta_2(\pi)=K(\pi)\cap\{\|\theta\|_2\le1\}\)</td><td>角度 CIO 基线</td><td>含二阶锥约束，不能称为纯 LP。</td></tr>
+          </tbody>
+        </table>
+        <div class="callout warning">
+          <div class="title">\(K(\pi)\) 不是奖励等价类</div>
+          <p>正缩放和加性空方向是所有行为都具有的结构对称性；但同一个 \(K(\pi)\) 内仍可包含会对其他策略作出不同排序的奖励。它是逆问题的 fiber（这里是法锥），其剩余宽度正是第二阶段必须控制的识别误差。</p>
+        </div>
+      </section>
+
+      <section id="conformal">
+        <h2><span class="num">6</span>Conformal 校准：有限样本保证什么？</h2>
+        <h3>6.1 距离到可行锥的分数</h3>
+        <div class="math-card">
+          \[\bar\theta^\circ=\bar\theta/\Dnorm{\bar\theta},\qquad
+          s_k:=\min_{\theta\in K(\pi_k)}\Dnorm{\theta-\bar\theta^\circ}.\]
+        </div>
+        <p>\(s_k\) 小，表示演示者的可行奖励锥离中心近；\(s_k\) 大，表示集合必须扩得更宽才能碰到一种兼容解释。</p>
+        <p>因为零奖励属于每个锥，\(0\le s_k\le1\)。这个分数无量纲，对中心奖励的正缩放、加性空方向以及可逆特征重参数化都不变；它仍是原来的线性规划。</p>
+        <h3>6.2 校准集合与精确等价</h3>
+        <div class="math-card">
+          \[
+          B_q:=\{\theta:\Dnorm{\theta-\bar\theta^\circ}\le q\},
+          \]
+          \[
+          s_k\le q\quad\Longleftrightarrow\quad K(\pi_k)\cap B_q\ne\varnothing.
+          \]
+        </div>
+        <p>分数事件不是被勉强“解释成”集合覆盖；它由最小距离定义直接等价于集合相交。</p>
+        <h3>6.3 分位数与有限样本保证</h3>
+        <div class="callout">
+          <div class="title">这一步是现成的，不是本工作的贡献</div>
+          <p>下面的分位数取法和覆盖率论证就是 split conformal prediction（Vovk et al. 2005），也正是 CIO 的 Theorem 1–2 所用的同一套论证：CIO 取 \(\{c_k\}\) 的第 \(\lceil\gamma(N_{\mathrm{val}}+1)\rceil\) 大值，我们取 \(\{s_k\}\) 的第 \(\tau\) 小值，两者只差一个单调变换。顺序决策的结构没有改变这个论证的任何一步。真正需要设计的是它两侧的东西：<strong>校准的是哪一个几何下的距离</strong>（§6.1，见 §6.4 的对比）和<strong>校准出来的事件到底能推出什么</strong>（§6.4–6.5：相交 ≠ 包含）。</p>
+        </div>
+        <p>有 \(n=N_{\mathrm{cal}}\) 个校准分数。令 \(\tau=\lceil\gamma(n+1)\rceil\)，取第 \(\tau\) 小分数为 \(q_\gamma\)；若 \(\tau=n+1\)，使用 \(+\infty\) 哨兵。</p>
+        <div class="math-card">
+          \[
+          \P[K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\varnothing]\ge\gamma.
+          \]
+        </div>
+        <details>
+          <summary>为什么交换性足够？</summary>
+          <div>
+            <p>训练集固定后，\(\bar\theta\) 固定。校准演示者与新演示者独立同分布，所以 \(s_1,\ldots,s_n,s_{\mathrm{new}}\) 可交换；新分数的秩对称。选择 \(\lceil\gamma(n+1)\rceil\) 分位数便得到至少 \(\gamma\) 的边际覆盖。</p>
+            <p>“边际”表示概率平均了训练/校准样本和新演示者，并不保证每个已拟合集合或每个子群体都有条件覆盖。</p>
+          </div>
+        </details>
+        <h3>6.4 三种构造的事件并不完全相同</h3>
+        <table>
+          <thead><tr><th>构造</th><th>校准事件</th><th>是否等于可行集相交？</th></tr></thead>
+          <tbody>
+            <tr><td>角度 CIO</td><td>归一化可行截面与球冠相交</td><td>是。</td></tr>
+            <tr><td>Value gap</td><td>\(V_{\bar\theta}(\mu^*_{\bar\theta})-V_{\bar\theta}(\mu_{\pi_k})\le q\)</td><td><strong>否。</strong>把 gap 阈值换成欧氏半径逆用了单向 Lipschitz 上界。</td></tr>
+            <tr><td>决策感知跨度</td><td>\(s_k\le q\)</td><td>是，由最小距离精确等价。</td></tr>
+          </tbody>
+        </table>
+        <div class="callout limit">
+          <div class="title">相交不等于包含</div>
+          <p>\(K(\pi_{\mathrm{new}})\cap B_q\ne\varnothing\) 只说明存在某个能解释新策略的奖励。它不说明演示者真正使用的 \(\hat\theta_{\mathrm{new}}^\circ\) 位于 \(B_q\) 中。</p>
+        </div>
+        <h3>6.5 第二阶段：用 fiber 宽度把相交变成包含</h3>
+        <p>定义单位跨度逆 fiber</p>
+        <div class="math-card">
+          \[F^\circ(\pi)=\{\theta\in K(\pi):\Dnorm{\theta}=1\}.\]
+        </div>
+        <p>若有外部知识能够认证每个部署 fiber 的射影直径不超过 \(\eta\)，则在 \(q_\gamma&lt;1\) 时，LP 分数给出</p>
+        <div class="math-card">
+          \[R=\min\{2,\,2q_\gamma+\eta\},\qquad
+          \P[\Dnorm{\hat\theta_{\mathrm{new}}^\circ-\bar\theta^\circ}\le R]\ge\gamma.\]
+        </div>
+        <p>因子 \(2q_\gamma\) 来自两步：先找到离中心不超过 \(q_\gamma\) 的锥内见证，再把见证归一化到单位跨度，至多再移动 \(q_\gamma\)。若 \(q_\gamma\ge1\)，见证可能是零奖励，只能退回通用半径 \(R=2\)。</p>
+        <div class="callout warning">
+          <div class="title">\(\eta\) 不能靠同一条 conformal 定理凭空得到</div>
+          <p>它需要侧信息、多环境观测、主动比较或其他识别结构。完全没有额外信息时，唯一通用认证是 \(\eta=2\)，虽然正确，却通常没有处方价值。</p>
+        </div>
+      </section>
+
+      <section id="robust">
+        <h2><span class="num">7</span>相对鲁棒决策：为什么需要参考占用测度？</h2>
+        <h3>7.1 绝对最坏情况可能无界</h3>
+        <p>半范数球沿加性空方向无界。直接求</p>
+        <div class="math-card">\[\max_{\mu\in\M(P)}\min_{\theta\in B_R}V_\theta(\mu)\]</div>
+        <p>时，对手可能沿空方向把所有策略的绝对价值一起推向负无穷。这不影响策略比较，却会破坏绝对值目标。</p>
+        <h3>7.2 改为相对参考策略的优势</h3>
+        <div class="math-card">
+          \[
+          \max_{\mu\in\M(P)}\min_{\theta\in B_R}
+          [V_\theta(\mu)-V_\theta(\mu_{\mathrm{ref}})].
+          \]
+        </div>
+        <p>给所有策略加同一常数的方向会在差值中抵消。实验以校准演示者的平均占用测度为参考。</p>
+        <h3>7.3 支持函数—规范函数对偶给出 LP</h3>
+        <p>令 \(x=\Phi^\top(\mu-\mu_{\mathrm{ref}})\)，\(\mathcal D_F=\Phi^\top(\M(P)-\M(P))\)，则</p>
+        <div class="math-card">
+          \[
+          \min_{\Dnorm{\delta}\le R}
+          \frac{(\bar\theta^\circ+\delta)^\top x}{1-\beta}
+          =\frac{(\bar\theta^\circ)^\top x}{1-\beta}-R\,\gamma_{\mathcal D_F}(x).
+          \]
+        </div>
+        <p>\(\gamma_{\mathcal D_F}\) 是 Minkowski 规范函数，可由两份缩放占用流变量线性表示。最重要的是：校准和鲁棒化都来自同一个占用差分体 \(\mathcal D_F\)。前者使用它的支持函数，后者使用其极对偶规范函数，所以两部分不是随意拼接。</p>
+        <h3>7.4 由包含得到相对参考的安全性</h3>
+        <p>参考占用本身的最坏相对优势恒为零，所以鲁棒最优解的最坏优势至少为零。在潜在归一化奖励落入 (B_R) 的事件上，便有</p>
+        <div class="math-card">
+          \[
+          V_{\hat\theta_{\mathrm{new}}}(\mu_R)\ge
+          V_{\hat\theta_{\mathrm{new}}}(\mu_{\mathrm{ref}}),
+          \qquad\text{概率至少为 }\gamma.
+          \]
+        </div>
+        <h3>7.5 尖锐退化边界：\(R\ge1\)</h3>
+        <p>单位跨度中心对任意候选占用的中心优势不超过规范惩罚，因此鲁棒目标至多为</p>
+        <div class="math-card">\[(1-R)\gamma_{\mathcal D_F}(x).\]</div>
+        <p>当 \(R\ge1\) 时它对所有候选都不大于零，而参考占用达到零；所以算法只能返回参考策略或与它特征等价的并列解。要得到非平凡安全改善，LP 桥至少要求 \(2q_\gamma+\eta&lt;1\)。</p>
+        <div class="callout warning">
+          <div class="title">参考策略不是 conformal 定理选出来的</div>
+          <p>\(\mu_{\mathrm{ref}}\) 是建模选择。若用点估计自己的最优占用测度作参考，最优相对优势会退化为零；不同参考也可能产生不同策略，因此部署前需要敏感性分析。</p>
+        </div>
+      </section>
+
+      <section id="limits">
+        <h2><span class="num">8</span>四层逻辑必须逐层经过</h2>
+        <table>
+          <thead><tr><th>层级</th><th>事件</th><th>本文是否保证？</th></tr></thead>
+          <tbody>
+            <tr><td>① 分数事件覆盖</td><td>\(s_{\mathrm{new}}\le q_\gamma\)</td><td>是，来自 split conformal 的秩论证。</td></tr>
+            <tr><td>② 可行奖励集相交</td><td>\(K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\varnothing\)</td><td>是；这是分数最小化的精确等价。</td></tr>
+            <tr><td>③ 潜在射线包含</td><td>\(\hat\theta_{\mathrm{new}}^\circ\in B_R\)</td><td>需要额外的认证 fiber 直径 \(\eta\)，并使用扩张半径 \(R\)。</td></tr>
+            <tr><td>④ 相对参考安全</td><td>\(V_{\hat\theta_{\mathrm{new}}}(\mu_R)\ge V_{\hat\theta_{\mathrm{new}}}(\mu_{\mathrm{ref}})\)</td><td>在第③层事件上成立，因此边际概率至少为 \(\gamma\)。不是相对点估计策略的保证。</td></tr>
+          </tbody>
+        </table>
+        <h3>8.1 为什么这不再是“把两个模块拼起来”？</h3>
+        <p>占用特征多面体 \(Z(P)\) 是统一起点：奖励是其上的线性函数；\(K(\pi)\) 是策略点对应的法锥；差分体 \(Z(P)-Z(P)\) 的支持函数给出校准距离；同一差分体的极对偶规范给出鲁棒惩罚。真正需要另加的只有可辨识性条件 \(\eta\)，而论文把它写在定理前提里，不再隐藏。</p>
+        <h3>8.2 理想分数与可解分数的取舍</h3>
+        <p>若直接计算到单位跨度 fiber 的距离，包含半径可缩成 \(q_\gamma+\eta\)，但约束 \(\Dnorm{\theta}=1\) 非凸。当前 LP 分数允许锥内任意尺度，因此付出 \(2q_\gamma\) 的归一化代价。这个常数是计算性与统计半径之间的明确交换。</p>
+      </section>
+
+      <section id="experiments">
+        <h2><span class="num">9</span>实验究竟说明什么？</h2>
+        <p>这里刻意只保留三个机制实验。主审计覆盖 3 个环境、2 个非空中心估计器（MaxEnt 与 Bayesian）、10 个种子；每次运行各有 20 个训练、20 个校准、20 个测试演示者，共 60 次拟合和 1,200 个测试奖励。置信区间以 30 个环境—种子块为独立重复单位，先平均共享同一批数据的两个估计器，再计算 95% Student-\(t\) 区间。</p>
+        <h3>9.1 实验一：对“什么都没改变”的干预，半径会不会改变？</h3>
+        <p>实验施加可逆特征变换 \(\phi\mapsto A\phi\)、\(\theta\mapsto A^{-\top}\theta\)。每个状态—动作奖励、最优策略和演示数据都完全相同，只有坐标写法变了。因此这不是普通相关性比较，而是一个直接的反事实检验：正确的奖励不确定性不应移动。</p>
         <ul>
-            <li>$\mathcal{S}$: 有限状态空间，$|S|$ 为状态数。</li>
-            <li>$\mathcal{A}$: 有限动作空间，$|A|$ 为动作数。</li>
-            <li>$P(s'|s,a)$: 转移概率矩阵，满足 $\sum_{s'} P(s'|s,a) = 1$。</li>
-            <li>$\beta \in (0,1)$: 折扣因子 (Discount Factor)。</li>
-            <li>$\phi(s,a) \in \mathbb{R}^d$: 状态-动作特征向量。奖励函数可线性表出为 $r_\theta(s,a) = \phi(s,a)^\top \theta$。</li>
+          <li>点态奖励最大数值差只有 \(2.2\times10^{-14}\)。</li>
+          <li>当条件数 \(\kappa=200\) 时，角度半径平均移动 \(0.424\) 弧度，即 \(24.3^\circ\)；最坏种子移动 \(1.071\) 弧度。</li>
+          <li>单位跨度 decision-aware 半径的最大变化为 \(2.0\times10^{-8}\)，处于求解器误差量级。</li>
         </ul>
-        <p>给定策略 $\pi(a|s)$，其累积期望回报定义为状态价值函数 (Value Function) $V^\pi_\theta(s)$：</p>
-        $$V^\pi_\theta(s) = \mathbb{E}_\pi \left[ \sum_{t=0}^\infty \beta^t r_\theta(s_t, a_t) \;\middle|\; s_0 = s \right]$$
-        <p>写成矩阵形式，满足<strong>贝尔曼期望方程 (Bellman Expectation Equation)</strong>：</p>
-        $$V^\pi_\theta = r^\pi_\theta + \beta P_\pi V^\pi_\theta$$
-        <p>其中 $r^\pi_\theta(s) = \sum_a \pi(a|s) \phi(s,a)^\top \theta = \Phi_\pi(s, \cdot) \theta$，$P_\pi(s, s') = \sum_a \pi(a|s) P(s'|s,a)$。</p>
-
-        <div class="box theorem">
-            <div class="box-title">重要矩阵恒等式：贝尔曼预解式 (Bellman Resolvent)</div>
-            <p>因为 $P_\pi$ 是随机矩阵（各行和为 1）且 $\beta < 1$，故谱半径 $\rho(\beta P_\pi) \le \beta < 1$。根据高等代数中的 Neumann 级数定理，矩阵 $(I - \beta P_\pi)$ 必可逆，且：</p>
-            $$V^\pi_\theta = (I - \beta P_\pi)^{-1} \Phi_\pi \theta$$
-            <p>线性算子 $W_\pi := (I - \beta P_\pi)^{-1} \Phi_\pi \in \mathbb{R}^{|S| \times d}$ 称为<strong>贝尔曼预解式</strong>。这表明：<strong>在固定策略 $\pi$ 下，价值函数 $V^\pi_\theta$ 是参数 $\theta$ 的严格线性映射！</strong></p>
-        </div>
-
-        <h3 id="sec1-3">1.3 符合性预测 (Split Conformal Prediction) 的概率推导</h3>
-        <p>符合性预测由 Vovk 等人在 2005 年提出，是一种<strong>无需分布假设 (Distribution-free)</strong> 且具备<strong>有限样本 (Finite-sample) 覆盖率保证</strong>的不确定性量化方法。</p>
-        <p>假设我们有独立同分布 (i.i.d.) 或可交换 (Exchangeable) 的数据点 $Z_1, Z_2, \dots, Z_{N_{\text{val}}}, Z_{\text{new}}$。为了衡量一个新样本与已知数据的“拟合程度”，定义不符合度得分 (Nonconformity Score) $S_k = s(Z_k)$。</p>
-
-        <div class="proof">
-            <div class="proof-title">符合性预测基本定理推导</div>
-            <p>设 $S_1, S_2, \dots, S_{N_{\text{val}}}, S_{\text{new}}$ 为连续随机变量。由于数据具有可交换性，新样本得分 $S_{\text{new}}$ 在全体得分（升序排列后）中的排名 (Rank) 在 $\{1, 2, \dots, N_{\text{val}} + 1\}$ 上服从<strong>均匀分布</strong>！</p>
-            <p>即对于任意 $k \in \{1, \dots, N_{\text{val}}+1\}$，$\mathbb{P}(\text{Rank}(S_{\text{new}}) = k) = \frac{1}{N_{\text{val}} + 1}$。</p>
-            <p>因此，若选择分位数位置 $\tau = \lceil (1-\alpha)(N_{\text{val}} + 1) \rceil$，并将阈值设定为验证集中第 $\tau$ 大的得分 $S^{(\tau)}$，则新样本得分不超过该阈值的概率严格满足：</p>
-            $$\mathbb{P}\left( S_{\text{new}} \le S^{(\tau)} \right) \ge \frac{\tau}{N_{\text{val}} + 1} \ge 1 - \alpha$$
-        </div>
-    </section>
-
-    <!-- SECTION 2 -->
-    <section id="sec2">
-        <h2>第 2 章 单步决策的反向优化：Conformal Inverse Optimization (CIO)</h2>
-        <p>论文《Conformal Inverse Optimization》(Lin et al., NeurIPS 2024) 解决了传统反向优化在决策推荐中的无界缺陷。</p>
-
-        <h3 id="sec2-1">2.1 传统点估计 IO 的致命缺陷</h3>
-        <p><strong>反向优化 (Inverse Optimization, IO)</strong> 的目标是：给定观测到的决策数据 $\mathcal{D} = \{(\hat{x}_k, u_k)\}_{k=1}^N$，求解潜在参数 $\theta$。</p>
-        <p>最常用的损失函数是<strong>次优性损失 (Sub-optimality Loss)</strong>：</p>
-        $$\ell_S(\hat{x}, \mathcal{X}^{\text{OPT}}(\theta, u)) := f(\theta, \hat{x}) - \min_{x \in \mathcal{X}(u)} f(\theta, x)$$
-        <p>经典 IO 求解点估计 $\bar{\theta} = \arg\min_{\theta \in \Theta} \frac{1}{N} \sum_{k=1}^N \ell_S(\hat{x}_k, \mathcal{X}^{\text{OPT}}(\theta, u_k))$，然后直接使用 $\bar{\theta}$ 求解正向问题 $\bar{x}_{\text{IO}}(u) \in \arg\min_{x \in \mathcal{X}(u)} f(\bar{\theta}, x)$。</p>
-        
-        <p><strong>评估指标：</strong></p>
+        <p>所以实验一支持的结论很窄但很强：欧氏角度不是这个 IRL 问题的内在几何；它不支持“新方法的策略一定更好”。</p>
+        <h3>9.2 实验二：相交覆盖与潜在奖励包含是否真有差别？</h3>
+        <table>
+          <thead><tr><th>构造</th><th>校准事件覆盖</th><th>用 Stage-I 半径直接包含潜在奖励</th></tr></thead>
+          <tbody>
+            <tr><td>角度球冠</td><td>\(0.812\pm0.042\)</td><td>\(0.368\pm0.095\)</td></tr>
+            <tr><td>Value-gap 球</td><td>\(0.838\pm0.046\)</td><td>\(0.004\pm0.005\)</td></tr>
+            <tr><td>决策感知跨度</td><td>\(0.819\pm0.036\)</td><td>\(0.438\pm0.081\)</td></tr>
+          </tbody>
+        </table>
+        <p>目标是 \(\gamma=0.8\)。三种分数事件都达到目标；角度和 decision-aware 的分数事件还分别精确等价于逆集合相交。但同一个 \(q_\gamma\) 对潜在奖励的包含率远低于目标。decision-aware 的第三列已使用不随特征重参数化变化的射影跨度距离，因此它直接展示：Stage I 正确，不代表 Stage II 自动成立。</p>
+        <h3>9.3 实验三：额外识别必须强到什么程度？</h3>
+        <p>对每次运行，定义可直接观测的“识别预算”</p>
+        <div class="math-card">\[b=\max\{1-2q_\gamma,0\}.\]</div>
+        <p>外部认证的 fiber 宽度必须满足 \(\eta&lt;b\)，才有 \(R=2q_\gamma+\eta&lt;1\)。这张前沿图不是从测试真值“估计” \(\eta\)，而是在回答：未来的多环境观测、主动比较或先验约束至少要把 fiber 压到多窄。</p>
         <ul>
-            <li><strong>真实次优性间隙 (Actual Optimality Gap, AOG)</strong>：决策在真实参数 $\theta^*$ 下的表现。
-                $$\text{AOG}(\bar{x}) = \mathbb{E}_{u} \left[ f(\theta^*, \bar{x}(u)) - \min_{x \in \mathcal{X}(u)} f(\theta^*, x) \right]$$
-            </li>
-            <li><strong>感知次优性间隙 (Perceived Optimality Gap, POG)</strong>：决策在决策者主观感知参数 $\hat{\theta}$ 下的表现。
-                $$\text{POG}(\bar{x}) = \mathbb{E}_{\hat{\theta}, u} \left[ f(\hat{\theta}, \bar{x}(u)) - \min_{x \in \mathcal{X}(u)} f(\hat{\theta}, x) \right]$$
-            </li>
+          <li>\(q_\gamma\) 的总体均值为 \(0.316\)，中位数为 \(0.289\)，范围为 \([0.019,0.871]\)。</li>
+          <li>如果外部机制能认证 \(\eta=0\)、\(0.2\)、\(0.5\)，分别有 85.0%、76.7%、36.7% 的运行仍满足 \(R&lt;1\)。</li>
+          <li>在 \(\eta=0.2\) 的假设下，random MDP、gridworld、Objectworld 的非退化比例分别为 95%、60%、75%。</li>
+          <li>使用唯一通用证书 \(\eta=2\) 时，所有运行都有 \(R=2\)，非退化比例严格为 0。</li>
         </ul>
-
-        <div class="box" style="border-left-color: #d9534f;">
-            <div class="box-title" style="color: #d9534f;">核心结论：经典 IO 的坍缩陷阱</div>
-            <p>经典点估计 IO 会将人群异质性（不同决策者主观感知的差异）强制坍缩为一个单一的点 $\bar{\theta}$。论文证明：即使样本量 $N \to \infty$，点估计也会收敛到一个退化的偏斜方向，导致 downstream 决策的 $\text{AOG}$ 和 $\text{POG}$ 趋于无界无穷大 ($\to \infty$)！</p>
+        <h3>9.4 为什么“包含率 1、参考安全率 1”并不是好消息？</h3>
+        <p>在通用 \(\eta=2\) 下，扩张包含率与相对参考安全率都等于 1，但算法返回的正是参考占用测度。这里的 1 只是定理和实现相互吻合：集合大到足以包含一切，也大到不允许任何安全改进。不能把它写成“我们取得 100% 安全且性能优越”。</p>
+        <h3>9.5 点估计器也有定义域检查</h3>
+        <p>exact-fit LP-IRL 在 30 个环境—种子拟合中有 1 次返回占用跨度为零的中心。此时单位跨度代表元不存在。主射影审计因此使用每次都产生非空中心的 MaxEnt 与 Bayesian；LP-IRL 的失败被记录为 abstention，而不是加一个任意 epsilon 掩盖。</p>
+        <div class="callout limit">
+          <div class="title">这些实验没有证明什么？</div>
+          <p>它们没有证明 decision-aware 鲁棒化总能降低真实 regret，也没有提供一个新的 \(\eta\) 认证方法。直接使用 Stage-I 半径的策略在 6 个平衡比较单元中只改善 2 个，而且不受 Stage-II 安全定理保护。当前最扎实的贡献是：把表示错误、相交—包含缺口以及所需识别强度分别测出来。</p>
         </div>
+      </section>
 
-        <h3 id="sec2-2">2.2 CIO 的校准问题与求解定理 (Theorem 1)</h3>
-        <p>CIO 提出了“先校准，后鲁棒”的全新管线（Calibrate-then-Robustify）：</p>
+      <section id="novelty">
+        <h2><span class="num">10</span>创新在哪里？哪些不是新的？</h2>
+        <h3>10.1 可信的创新定位</h3>
+        <ul>
+          <li>用保持奖励函数不变的特征重参数化实验，定量揭示角度 CIO 在 IRL 中的坐标依赖。</li>
+          <li>结合 Bellman 可行奖励锥与占用跨度，构造具有精确相交含义的 conformal 分数。</li>
+          <li>用单位跨度射影化同时处理正尺度和加性空方向，同时保持 Stage-I 分数为 LP。</li>
+          <li>以 fiber 直径 \(\eta\) 明确连接相交覆盖、潜在奖励包含和参考相对安全处方。</li>
+          <li>证明 \(R\ge1\) 的尖锐退化边界，并让代码直接报告保证是否非平凡。</li>
+        </ul>
+        <h3>10.2 已有基础</h3>
+        <div class="callout prior">
+          <div class="title">这是组合创新，不是每个零件都首次出现</div>
+          <ul>
+            <li><a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/7423902b5534e2b267438c85444a54b1-Paper-Conference.pdf">Conformal Inverse Optimization</a> 已提供校准—鲁棒化框架，并证明学习集合以指定边际概率与下一次逆可行参数集相交。本文的 fiber 宽度桥是新增假设，不能归给 CIO。</li>
+            <li><a href="https://arxiv.org/abs/2309.15257">STARC</a> 已研究行为相关的奖励规范化与 regret 几何。</li>
+            <li>Bellman 最优性不等式描述可行奖励集合，是经典 IRL 几何。</li>
+            <li>逐点最小线性函数的凹性和支持函数—规范函数对偶属于标准凸分析。</li>
+          </ul>
+        </div>
+        <h3>10.3 最值得继续做的三条路线</h3>
         <ol>
-            <li><strong>数据划分</strong>：数据分为训练集 $\mathcal{D}_{\text{train}}$ 和验证集 $\mathcal{D}_{\text{val}}$。在训练集上得到任意点估计 $\bar{\theta}$（规范化为 $\|\bar{\theta}\|_2 = 1$）。</li>
-            <li><strong>校准不确定性集</strong>：定义球冠状不确定性集：
-                $$\mathcal{C}(\bar{\theta}, \alpha) := \left\{ \theta \in \mathbb{R}^d \;\middle|\; \|\theta\|_2 = 1, \; \theta^\top \bar{\theta} \ge \cos \alpha \right\}$$
-            </li>
-            <li><strong>求解鲁棒正向优化 (RFO)</strong>：
-                $$\text{RFO}(\mathcal{C}(\bar{\theta}, \alpha), u): \min_{x \in \mathcal{X}(u)} \max_{\theta \in \mathcal{C}(\bar{\theta}, \alpha)} \theta^\top x$$
-            </li>
+          <li><strong>认证小 fiber 宽度：</strong>研究多环境、主动查询或偏好信息如何给出可用的 \(\eta\)。</li>
+          <li><strong>局部仿射归一化：</strong>用中心奖励的最佳—最差价值差作线性锚，探索更紧且仍为 LP 的半径。</li>
+          <li><strong>有限轨迹理论：</strong>把占用测度估计误差与 conformal 校准误差分开控制。</li>
         </ol>
-
-        <p>为了求解最小的半顶角 $\alpha$，CIO 构造了如下校准优化问题：</p>
-        $$\begin{aligned}
-        \text{CP}(\bar{\theta}, \mathcal{D}_{\text{val}}, \gamma): \min_{\alpha, \{\theta_k\}} \quad & \alpha \\
-        \text{s.t.} \quad & \hat{x}_k \in \mathcal{X}^{\text{OPT}}(\theta_k, u_k), \quad \forall k \in \mathcal{K}_{\text{val}} \\
-        & \sum_{k \in \mathcal{K}_{\text{val}}} \mathbf{1}\left[ \theta_k \in \mathcal{C}(\bar{\theta}, \alpha) \right] \ge \lceil \gamma (N_{\text{val}} + 1) \rceil \\
-        & \|\theta_k\|_2 = 1, \quad 0 \le \alpha \le \pi
-        \end{aligned}$$
-
-        <div class="box theorem">
-            <div class="box-title">CIO 定理 1 (Theorem 1)：校准问题的精确解法</div>
-            <p>定义每个验证样本 $k$ 的最大相似度得分（拟合分数）：</p>
-            $$c_k := \max_{\theta_k} \left\{ \theta_k^\top \bar{\theta} \;\middle|\; \hat{x}_k \in \mathcal{X}^{\text{OPT}}(\theta_k, u_k), \; \|\theta_k\|_2 \le 1 \right\}$$
-            <p>设 $\Gamma_\tau$ 为提取集合中第 $\tau$ 大元素的算子，其中 $\tau = \lceil \gamma (N_{\text{val}} + 1) \rceil$。则最优半顶角为：</p>
-            $$\alpha_\gamma = \arccos \left( \Gamma_\tau \left( \{c_k\}_{k \in \mathcal{K}_{\text{val}}} \right) \right)$$
-            <p><strong>数学意义：</strong>大一同学请注意，该定理将包含 $N_{\text{val}}$ 个耦合约束的大规模非凸混合整数规划，分解为 $N_{\text{val}}$ 个完全独立的 $d$ 维凸优化子问题！求解完后只需做一次 $O(N_{\text{val}} \log N_{\text{val}})$ 的排序即可取分位数。</p>
+        <div class="callout intuition">
+          <div class="title">如何评价这篇论文？</div>
+          <p>它现在更接近 CIO 的完整逻辑：先学习参数不确定集合，再据此处方；但它也指出，IRL 中从“逆集合相交”到“参数进入集合”需要额外识别宽度。这个桥以及何时退化，正是方法的核心，而不是附加补丁。</p>
         </div>
+      </section>
 
-        <h3 id="sec2-3">2.3 无分布假设的有限样本覆盖率证明 (Theorem 2)</h3>
-        <div class="proof">
-            <div class="proof-title">定理 2 证明（符合性覆盖率保证）</div>
-            <p>定义不符合度测量函数 $A_{\bar{\theta}}(\hat{x}, u) := \max_{\theta} \{ \theta^\top \bar{\theta} : \hat{x} \in \mathcal{X}^{\text{OPT}}(\theta, u), \|\theta\|_2 \le 1 \}$。则 $c_k = A_{\bar{\theta}}(\hat{x}_k, u_k)$。</p>
-            <p>根据不确定性集的构造条件，“存在能使新样本 $\hat{x}_{\text{new}}$ 最优的 $\theta \in \mathcal{C}(\bar{\theta}, \alpha_\gamma)$” 等价于事件：</p>
-            $$A_{\bar{\theta}}(\hat{x}_{\text{new}}, u_{\text{new}}) \ge \cos \alpha_\gamma = \Gamma_\tau(\{c_k\})$$
-            <p>由于样本是独立同分布的，集合 $\mathcal{D}' = \mathcal{D}_{\text{val}} \cup \{(\hat{x}_{\text{new}}, u_{\text{new}})\}$ 中的数据点是完全<strong>可交换 (Exchangeable)</strong> 的。新样本得分在整个集合排名高到低的第 $\tau$ 名或更靠前的概率严格满足：</p>
-            $$\mathbb{P}\left( \Theta^{\text{OPT}}(\hat{x}_{\text{new}}, u_{\text{new}}) \cap \mathcal{C}(\bar{\theta}, \alpha_\gamma) \neq \emptyset \right) \ge \frac{\tau}{N_{\text{val}} + 1} \ge \gamma$$
-            <p>证毕。$\blacksquare$</p>
-        </div>
-
-        <h3 id="sec2-4">2.4 经典几何反例 (Example 1) 的严格手算推导</h3>
-        <p>为了直观说明为什么点估计会失败，论文设计了一个精妙的二维线性规划反例：</p>
-
-        <div class="box">
-            <div class="box-title">凸几何预备：极点 (Extreme Point) 与极射线 (Extreme Ray)</div>
-            <p>这两个概念分别是<strong>有界凸集</strong>与<strong>无界凸锥</strong>的"生成元"，是理解 Example 1 为何能把"整个连续可行域/参数域"的分析压缩成"比较少数几个候选"的根本原因。</p>
-            <p><strong>极点</strong>：凸集 $S$ 中的点 $x$ 称为极点，当且仅当它不能写成 $S$ 中两个不同点的非平凡凸组合：</p>
-            $$x = \lambda y + (1-\lambda) z, \; y,z \in S, \; \lambda \in (0,1) \implies y = z = x$$
-            <p>直观地说，极点是凸集"棱角分明的顶点"——无法被集合内其它两点夹在中间的点。对多面体而言，极点就是几何意义上的顶点，例如本例梯形可行域的 $x_1,x_2,x_3,x_4$。这之所以重要，是因为<strong>线性规划的最优解必在某个极点取得</strong>（LP 基本定理），所以 Example 1 的分析只需比较四个顶点谁的（最坏情况）目标值最小，而不必考虑整个连续可行域。</p>
-            <p><strong>极射线</strong>：是极点概念在无界凸锥上的类比。凸锥 $K$ 中形如 $\{\lambda v : \lambda \ge 0\}$ 的射线称为极射线，当且仅当它不能被分解为锥内两条不同射线上点的正组合；直观上，它是锥的"边界生成方向"，锥内任意向量都可以写成极射线方向的非负组合。本例中参数集合 $\Theta = \{(\cos\delta,\sin\delta) \mid \delta \in (0,\pi/2)\}$ 撑起第一象限里的一个二维扇形锥，它的两条极射线正是 $\delta \to 0^+$（方向 $(1,0)$）与 $\delta \to (\pi/2)^-$（方向 $(0,1)$），即后文图示中的两条灰色边界箭头——整个扇形内任意方向的 $\theta$ 都是这两条极射线方向的凸组合。</p>
-            <p style="margin-bottom:0;"><strong>关于 $\theta$ 只需关心方向：</strong>由于目标函数是线性的 $f(\theta,x)=\theta^\top x$，对任意 $\beta>0$ 都有 $\arg\min_x \theta^\top x = \arg\min_x (\beta\theta)^\top x$，即最优解只由 $\theta$ 的<strong>方向</strong>决定，与其模长无关——这正是论文里把所有 $\theta$ 限制在单位球面 $\|\theta\|_2=1$ 上、把 $d$ 维参数简化为一个纯方向信号的原因。$\theta$ 是自由向量，图上把它的起点画在原点或某个顶点上，只是为了直观展示"等高线推进方向"，不代表它"属于"某个顶点。</p>
-        </div>
-
-        <div class="counterexample">
-            <p><strong>Example 1 模型设定：</strong></p>
-            $$\begin{aligned}
-            \text{FO}(\theta, u): \min_{x_1, x_2} \quad & \theta_1 x_1 + \theta_2 x_2 \\
-            \text{s.t.} \quad & x_1 + u x_2 \ge u \\
-            & 0 \le x_1 \le u, \quad 0 \le x_2 \le 2
-            \end{aligned}$$
-            <p>可行域为梯形，极点为 $x_1=(0,1), x_2=(0,2), x_3=(u,0), x_4=(u,2)$。</p>
-            <p>假设真实参数 $\theta^* = (\cos(\pi/4), \sin(\pi/4)) = (\frac{\sqrt{2}}{2}, \frac{\sqrt{2}}{2})$。决策者感知的 $\hat{\theta} = (\cos\delta, \sin\delta)$，其中角度 $\delta \sim U(0, \pi/2)$ 均匀分布。</p>
-        </div>
-
-        <div class="box">
-            <div class="box-title">几何直觉：论文 Figure 2 怎么看</div>
-            <p>把图中的视觉元素与数学对象对照起来，看图的逻辑链就非常清楚：</p>
-            <table>
-                <thead><tr><th>图中元素</th><th>数学含义</th></tr></thead>
-                <tbody>
-                    <tr><td>灰色梯形区域</td><td>可行域 $\mathcal{X}(u)$，四个顶点 $x_1,x_2,x_3,x_4$</td></tr>
-                    <tr><td>黑色箭头</td><td>真实参数 $\theta^*=(\cos\frac{\pi}{4},\sin\frac{\pi}{4})$，方向 $45^\circ$</td></tr>
-                    <tr><td>灰色箭头</td><td>参数扇形锥 $\Theta$ 的两条极射线（边界方向 $\delta\to0^+$ 与 $\delta\to(\pi/2)^-$）</td></tr>
-                    <tr><td>黑色圆点</td><td>$\text{FO}(\theta^*,u)$ 的最优解，即真实参数下应做出的决策 $x_1=(0,1)$</td></tr>
-                    <tr><td>蓝色箭头/圆点</td><td>经典 IO 的点估计 $\bar\theta_N \to \theta_u$，以及它在退化长边上"随机乱选"的推荐决策</td></tr>
-                    <tr><td>绿色弧形区域/圆点</td><td>CIO 校准出的不确定性集 $\mathcal{C}(\bar\theta,\alpha)$，以及 RFO 在此集合下求出的鲁棒决策，稳定命中 $x_1=(0,1)$</td></tr>
-                </tbody>
-            </table>
-            <p>核心逻辑链（五步）：① LP 最优解只需在四个极点里比较；② 随 $\delta$ 从 $0$ 增大到 $\pi/2$，最优顶点在临界角 $\delta_u$ 处从 $x_1$ 跳变到 $x_3$——目标函数连续但最优解不连续；③ 次优性损失点估计恰好收敛到这个病态跳变点 $\theta_u$，而非真实的 $\theta^*$；④ 在 $\theta_u$ 处整条长边 $x_1+ux_2=u$ 同时最优，经典 IO 在边上乱选，AOG 随 $u\to\infty$ 发散；⑤ CIO 以 $\bar\theta$ 为中心校准出弧形不确定集，做最坏情况鲁棒优化，因为要"防守"整个弧形范围，最终稳定落在顶点 $x_1=(0,1)$——恰好是真实最优解，AOG 归零。</p>
-        </div>
-
-        <div class="proof">
-            <div class="proof-title">手算推导 1：经典 IO 的崩溃</div>
-            <p>切割临界角 $\delta_u := \arccos(1/\sqrt{1+u^2})$，对应方向 $\theta_u = \left(\frac{1}{\sqrt{1+u^2}}, \frac{u}{\sqrt{1+u^2}}\right)$，它恰好<strong>垂直于</strong>约束边 $x_1+ux_2=u$。分析可知：</p>
-            <ul>
-                <li>当 $\delta \in (0, \delta_u]$ 时，最优决策为 $x_1 = (0,1)$；</li>
-                <li>当 $\delta \in (\delta_u, \pi/2)$ 时，最优决策为 $x_3 = (u,0)$。</li>
-            </ul>
-            <p>于是数据集中只会观测到两类决策：$\hat{x}=(0,1)$（出现概率 $p_1 = \frac{2\delta_u}{\pi}$）和 $\hat{x}=(u,0)$（概率 $p_2=1-\frac{2\delta_u}{\pi}$）。对每一类观测点，把次优性损失 $\ell_S(\hat{x},\theta) = f(\theta,\hat{x}) - \min_x f(\theta,x)$ 写成关于 $\theta=(\cos\delta,\sin\delta)$ 的分段函数：</p>
-            $$l_1(\theta) := \ell_S\big((0,1),\theta\big) = \begin{cases} 0, & \delta \le \delta_u \;(\text{此时 } (0,1) \text{ 本就最优}) \\ \theta_2 - u\theta_1, & \delta > \delta_u \;(\text{此时最优解是 } (u,0)) \end{cases}$$
-            $$l_2(\theta) := \ell_S\big((u,0),\theta\big) = \begin{cases} u\theta_1 - \theta_2, & \delta \le \delta_u \;(\text{此时最优解是 } (0,1)) \\ 0, & \delta > \delta_u \;(\text{此时 } (u,0) \text{ 本就最优}) \end{cases}$$
-            <p>经典 IO 求解 $\min_\theta \left[\frac{N_1}{N} l_1(\theta) + \frac{N_2}{N} l_2(\theta)\right]$。由于 $\delta_u \in (0,\pi/2)$ 且 $\delta \sim U(0,\pi/2)$，大数定律保证当 $N\to\infty$ 时数据集里 $N_1>0$ 个 $(0,1)$ 和 $N_2>0$ 个 $(u,0)$ 同时存在（概率 $\to 1$）。两个损失都 $\ge 0$，总损失的下界为 $0$；要同时让 $l_1(\theta)=0$ 且 $l_2(\theta)=0$，唯一可能是 $\theta_2-u\theta_1=0$，即 $\theta=\theta_u$——这就是唯一能"同时完美解释"两类矛盾观测的点。因此 $\bar{\theta}_N \xrightarrow{p} \theta_u$（这就是 Lemma 1）。</p>
-            <p>而对于参数 $\theta_u$，包含约束 $x_1 + u x_2 = u$ 的整个线段上的所有点都是最优解（因为 $\theta_u$ 恰好垂直于这条边，等高线与约束边重合）！经典 IO 的决策策略 $\bar{x}_{\text{IO}}(u)$ 会在线段上均匀采样。</p>
-            <p>计算真实次优性间隙 $\text{AOG}$：</p>
-            $$\text{AOG}(\bar{x}_{\text{IO}}) = \int_0^{\sqrt{u^2+1}} \left[ \frac{\sqrt{2}}{2}\left( \frac{ut}{\sqrt{u^2+1}} + 1 - \frac{t}{\sqrt{u^2+1}} \right) \right] dt - \frac{\sqrt{2}}{2} = \frac{\sqrt{2}(u-1)}{4}$$
-            <p>当参数 $u \to \infty$ 时，$\text{AOG}(\bar{x}_{\text{IO}}) \to \infty$！<strong>点估计策略的真实间隙发散！</strong>直觉上：群体决策者的感知噪声有人偏左、有人偏右，次优性损失为了"和稀泥"式地同时解释两边的观测，被迫收敛到两者的相变临界方向 $\theta_u$，而这个方向恰好是让问题退化成"整条边都最优"的病态点。</p>
-        </div>
-
-        <div class="proof">
-            <div class="proof-title">手算推导 2：CIO 的完全修复</div>
-            <p>CIO 求解 RFO：$\min_{x \in \mathcal{X}(u)} \max_{\theta \in \mathcal{C}(\theta_u, \alpha)} \theta^\top x$。取半顶角 $\alpha \in (0, \pi/2)$。</p>
-            <p>比较四个极点在不确定性集下的最坏情况目标值：</p>
-            $$R(x_1) = \max_{\theta \in \mathcal{C}(\theta_u, \alpha)} \theta_2 = \begin{cases} \sin(\delta_u + \alpha) & \text{if } \alpha \le \pi/2 - \delta_u \\ 1 & \text{if } \alpha > \pi/2 - \delta_u \end{cases}$$
-            $$R(x_3) = \max_{\theta \in \mathcal{C}(\theta_u, \alpha)} u \theta_1 = \begin{cases} u \cos(\delta_u - \alpha) & \text{if } \alpha \le \delta_u \\ u & \text{if } \alpha > \delta_u \end{cases}$$
-            <p>由于 $u > 1$，利用三角恒等式可严谨证明：对任意 $\alpha \in (0, \pi/2)$，恒有 $R(x_1) < \min\{ R(x_2), R(x_3), R(x_4) \}$！</p>
-            <p>因此，CIO 鲁棒决策<strong>唯一确定为原点极点 $x_1 = (0,1)$</strong>。其真实间隙：</p>
-            $$\text{AOG}(\bar{x}_{\text{CIO}}) = f(\theta^*, (0,1)) - f(\theta^*, (0,1)) = 0!$$
-            <p>无论 $u$ 多大，$\text{AOG}$ 恒为 0，彻底解决了无界风险。$\blacksquare$</p>
-        </div>
-    </section>
-
-    <!-- SECTION 3 -->
-    <section id="sec3">
-        <h2>第 3 章 序列决策的逆强化学习：CP-IRL</h2>
-        <p>论文《CP-IRL》(Chi, NeurIPS 2026 提交) 将 CIO 范式推广到马尔可夫决策过程 (MDP)。这面临两大数学障碍：</p>
-        <ol>
-            <li><strong>计算障碍</strong>：MDP 的 Bellman 最优性约束同时包含参数 $\theta$ 和价值函数 $V$，变量维度高达 $d + |S|$，在大型状态空间下无法计算。</li>
-            <li><strong>鲁棒决策障碍</strong>： Robust MDP 是策略空间与参数空间上的极小化极大 (Minimax) 博弈 $\max_\pi \min_\theta$，通常是 NP-hard。</li>
-        </ol>
-
-        <h3 id="sec3-1">3.1 瓶颈突破 1：贝尔曼预解式 (Bellman Resolvent) 降维</h3>
-        <p>论文利用预解式矩阵 $W_\pi = (I - \beta P_\pi)^{-1} \Phi_\pi$，推导出动作价值函数 $Q^\pi_\theta(s,a)$ 关于 $\theta$ 的显式表达：</p>
-        $$Q^\pi_\theta(s,a) = M_\pi(s,a)^\top \theta, \quad \text{其中 } M_\pi(s,a) := \phi(s,a) + \beta P(s,a,\cdot)^\top W_\pi$$
-
-        <div class="box theorem">
-            <div class="box-title">CP-IRL 降维定理（无松弛的精确等价）</div>
-            <p>对于观测到的演示者策略 $\hat{\pi}_k$，使该策略满足 Bellman 最优的参数集为：</p>
-            $$\Theta(\hat{\pi}_k) = \left\{ \theta \in \mathbb{R}^d \;\middle|\; \|\theta\|_2 \le 1, \; M_{\hat{\pi}_k}(s,a)^\top \theta \le M_{\hat{\pi}_k}(s, \hat{\pi}_k(s))^\top \theta \quad \forall s \in \mathcal{S}, a \in \mathcal{A} \right\}$$
-            <p>单个演示者的校准得分拟合规划简化为仅关于 $\theta$ 的 $d$ 维凸优化：</p>
-            $$c_k = \max_{\|\theta\|_2 \le 1} \left\{ \theta^\top \bar{\theta} \;\middle|\; M_{\hat{\pi}_k}(s,a)^\top \theta \le M_{\hat{\pi}_k}(s, \hat{\pi}_k(s))^\top \theta, \quad \forall s, a \right\}$$
-            <p><strong>计算复杂度飞跃：</strong>变量维度从 $d + |S|$（包含数万个状态的价值变量）直接降至 $d$（奖励特征维数，通常 $d \le 10$）！</p>
-        </div>
-
-        <div class="box">
-            <div class="box-title">高等代数加速：Sherman-Morrison-Woodbury 矩阵更新</div>
-            <p>当两个演示者策略 $\pi_1, \pi_2$ 仅在 $k$ 个状态上的动作不同时，其转移矩阵差为低秩矩阵：$I - \beta P_{\pi_2} = I - \beta P_{\pi_1} + U V^\top$（其中 $U, V \in \mathbb{R}^{|S| \times k}$）。</p>
-            <p>应用 Woodbury 矩阵恒等式，更新预解式无需重新求解 $O(|S|^3)$ 的求逆：</p>
-            $$(I - \beta P_{\pi_2})^{-1} = (I - \beta P_{\pi_1})^{-1} - (I - \beta P_{\pi_1})^{-1} U \left( I + V^\top (I - \beta P_{\pi_1})^{-1} U \right)^{-1} V^\top (I - \beta P_{\pi_1})^{-1}$$
-            <p>计算复杂度降低至 $O(k^2 |S| + k^3)$！</p>
-        </div>
-
-        <h3 id="sec3-2">3.2 瓶颈突破 2：占用测量空间 (Occupancy Measure) 与凸性边界</h3>
-        <p>在 Robust MDP 中，一般的不确定性集会导致非凸优化。CP-IRL 证明了：<strong>只要不确定性仅存在于奖励参数 $\theta$（转移矩阵 $P$ 确定）， Robust MDP 必为严格的凸规划！</strong></p>
-        
-        <p><strong>证明构造：</strong>引入占用测量向量 (Occupancy Measure) $d(s,a) := (1-\beta) \sum_{t=0}^\infty \beta^t \mathbb{P}(s_t=s, a_t=a)$。所有物理可达的占用测量构成一个闭凸多面体 $\mathcal{M}(P)$：</p>
-        $$\mathcal{M}(P) = \left\{ d \ge 0 \;\middle|\; \sum_{a} d(s', a) = (1-\beta) \mu_0(s') + \beta \sum_{s,a} P(s'|s,a) d(s,a), \quad \forall s' \right\}$$
-        <p>策略 $\pi$ 的期望回报可写为线性函数 $\theta^\top \Phi^\top d$。鲁棒优化目标变为：</p>
-        $$\max_{d \in \mathcal{M}(P)} \; g_\mathcal{C}(\Phi^\top d), \quad \text{其中 } g_\mathcal{C}(x) := \inf_{\theta \in \mathcal{C}} \theta^\top x$$
-        <p>因为 $g_\mathcal{C}(x)$ 是线性函数族逐点取下界 (Pointwise Infimum)，根据凸分析基本定理，<strong>$g_\mathcal{C}(x)$ 必为凹函数 (Concave Function)</strong>！复合线性映射 $\Phi^\top d$ 保持凹性。在凸多面体 $\mathcal{M}(P)$ 上最大化凹函数，即为一个极佳的<strong>凸规划 (Convex Program)</strong>。</p>
-
-        <h3 id="sec3-3">3.3 紧致性反例：转移矩阵不确定性破坏凸性的 Jensen 违背证明</h3>
-        <p>上述凸性结论是否能推广到包含动态转移矩阵 $P$ 扰动的情形？CP-IRL 定理 4.2 给出否定回答：<strong>不能！即便耦合极微小的不确定性，凹性也会被破坏。</strong></p>
-
-        <div class="counterexample">
-            <div class="box-title">手算证明：2-State 2-Action MDP 凹性破坏反例</div>
-            <p>考虑 2 状态、2 动作 MDP，转移矩阵与奖励由标量参数 $t \in [0, 1]$ 耦合：</p>
-            $$\theta(t) = 1 + t, \quad q(t) = 1 - t$$
-            <p>智能体策略参数 $p \in [0, 1]$ 表示采取动作 1 的概率。代入无限界折扣回报，导出的最坏情况价值函数为：</p>
-            $$W(p) = \min_{t \in [0, 1]} \frac{p(1+t)}{1 - \beta p (1-t)}$$
-            <p>取折扣因子 $\beta = 0.9$。我们计算三个关键策略点 $p_1 = 0, \; p_2 = \frac{5}{9}, \; p_{\text{mid}} = \frac{5}{18}$：</p>
-            <ol>
-                <li>$p_1 = 0 \implies W(0) = 0$。</li>
-                <li>$p_2 = \frac{5}{9} \implies W(5/9) = \min_{t \in [0,1]} \frac{\frac{5}{9}(1+t)}{1 - 0.9 \cdot \frac{5}{9}(1-t)} = \min_{t} \frac{5+5t}{4+5t} = 1$ (在 $t=0$ 处取得)。</li>
-                <li>中点 $p_{\text{mid}} = \frac{5}{18} \implies W(5/18) = \min_{t \in [0,1]} \frac{\frac{5}{18}(1+t)}{1 - 0.9 \cdot \frac{5}{18}(1-t)} = \min_{t} \frac{10(1+t)}{31+5t}$。<br>
-                由于 $\frac{d}{dt}\left(\frac{10+10t}{31+5t}\right) = \frac{260}{(31+5t)^2} > 0$，最小值同样在 $t=0$ 处取得：
-                $$W(5/18) = \frac{10}{31 - 4} = \frac{10}{27} \approx 0.37037$$
-                </li>
-            </ol>
-            <p><strong>Jensen 不等式检验：</strong>若 $W(p)$ 是凹函数，必须满足 $W\left(\frac{p_1 + p_2}{2}\right) \ge \frac{W(p_1) + W(p_2)}{2}$。</p>
-            <p>代入数值：</p>
-            $$W(5/18) = \frac{10}{27} \approx 0.37037 < \frac{1}{2}\left( 0 + 1 \right) = 0.5$$
-            <p><strong>凹性条件严格违背！</strong> 这证明了只要不确定性集合耦合了转移概率， Robust MDP 就会失去凸性，变为非凸规划。因此 CP-IRL 确立了边界：奖励不确定性是保持凸性计算可行性的充要条件边界。</p>
-        </div>
-
-        <h3 id="sec3-4">3.4 理论边界：系统偏差 (Bias) vs 纯噪声 (Noise)</h3>
-        <p>CP-IRL 在随机 MDP、方格世界 (Gridworld) 与 Objectworld 三种环境、六个消融实验维度上反复验证出一个极其重要且相当反直觉的结论：<strong>鲁棒对冲并不是"多多益善"的免费保险</strong>——它的价值取决于点估计错误的<strong>性质</strong>，而不仅仅是错误的<strong>大小</strong>。</p>
-        <ul>
-            <li><strong>系统性偏差 (Systematic Bias)</strong>：当演示者群体或点估计方法存在结构性偏差时（例如次优性损失在退化的决策边界上收敛到一个与真实参数 $\theta^*$ 无关的固定方向 $\theta_u$，见 2.4 节），鲁棒对冲能大幅降低真实次优性间隙 $\text{AOG}$，且间隙随场景规模增长而<strong>持续扩大的差距</strong>——见下方图 1。</li>
-            <li><strong>无偏纯噪声 (Unbiased Noise)</strong>：当点估计是无偏的、仅包含随机噪声时（例如 MaxEnt IRL 或 Bayesian IRL 在结构良好的 MDP 上给出的估计），鲁棒对冲反而会因为过分保守（只盯着不确定性集合里的最坏情形）而<strong>增加</strong>平均 $\text{AOG}$——这就是"保险成本" (Insurance Cost)。</li>
-        </ul>
-
-        <div class="box" style="border-left-color: #2a6f97;">
-            <div class="box-title" style="color: #2a6f97;">直观类比：为什么"买保险"有时候是亏本生意？</div>
-            <p>想象两位司机：</p>
-            <p><strong>司机 A（系统性偏差）</strong>——他的车速表被固定校歪了，永远比真实车速慢 10%。无论他多小心地"根据仪表估算车速"来决策，这个偏差都会稳定地把他引向错误的判断，而且路况越复杂，这个持续存在的偏差造成的损失就越大。这时候，"鲁棒决策"（不完全相信仪表，而是为一整个可能的真实车速区间做最坏情况准备）能显著避免灾难，因为真正的问题出在"仪表本身有毛病"，而鲁棒对冲恰好绕开了对单一错误仪表读数的依赖。</p>
-            <p><strong>司机 B（纯噪声）</strong>——他的仪表是准的，只是每次读数有一点随机抖动（这次偏高一点，下次偏低一点，但平均起来是准的）。如果他也要"为最坏情况做准备"（仿佛仪表可能任意错到某个极端），他就会不必要地一直急刹车、绕远路——白白付出了"保险费"，却没有换来相应的安全收益，因为他的仪表本来就没有系统性的毛病。</p>
-            <p>CP-IRL 的核心发现就是：<strong>只有当"仪表"（点估计）存在真实的、结构性的系统偏差时，为最坏情况投保才划算；如果"仪表"只是有点抖动但整体无偏，投保就是净损失。</strong>这正是论文第 6、7 节实验部分反复验证、并诚实报告为"适用边界"而非回避的结论。</p>
-        </div>
-
-        <div class="counterexample">
-            <div class="box-title">真实实验证据：图 1 — 分离定理的十次重复实验（Separation, 10 seeds）</div>
-            <p>下图取自 CP-IRL 论文正文 Figure 1，直接对应 2.4 节 Example 1 反例在序列决策 (MDP) 版本下的真实计算结果：横轴 $u$ 为场景规模参数（越大代表决策边界的"陷阱"越极端），纵轴为真实次优性间隙 $\text{AOG}$（对数坐标），阴影区域为 10 次独立随机种子实验的标准差范围。</p>
-            <img src="assets/fig1_separation.png" alt="Figure 1: classic IRL's AOG diverges (7.07 to 280.0) while CP-IRL's AOG shrinks (1.41 to 0.028) as u grows from 2 to 100, log scale, 10 seeds" style="width:100%; max-width:640px; display:block; margin:20px auto; border:1px solid #ccc;">
-            <p>橙色曲线（经典点估计 IRL）的 $\text{AOG}$ 从 $u=2$ 时的 $7.07$ 一路发散到 $u=100$ 时的 $280.0$——完全符合 2.4 节手算推导中 $\text{AOG} \to \infty$ 的理论预言。蓝色曲线（CP-IRL 校准鲁棒决策）的 $\text{AOG}$ 反而从 $1.41$ <strong>单调收敛</strong>到 $0.028$，随 $u$ 增大越来越逼近于零。这不是"理论上应该如此"的空谈，而是把定理里的每一个符号都代入真实代码、跑出来的可复现数字。</p>
-        </div>
-    </section>
-
-    <!-- SECTION 4 -->
-    <section id="sec4">
-        <h2>第 4 章 CIO 与 CP-IRL 的统一数学对比</h2>
-        <p>为了帮助大一同学建立完整的框架思维，下表对比了两篇论文在各个数学维度上的对应与演进关系：</p>
-
+      <section id="cheatsheet">
+        <h2><span class="num">11</span>一页公式速查</h2>
         <table>
-            <thead>
-                <tr>
-                    <th>数学维度</th>
-                    <th>Conformal IO (Lin et al. 2024)</th>
-                    <th>CP-IRL (Chi 2026)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>决策场景</strong></td>
-                    <td>单步决策 (One-shot Decision)</td>
-                    <td>序列决策 (Sequential MDP)</td>
-                </tr>
-                <tr>
-                    <td><strong>正向规划 (FO)</strong></td>
-                    <td>静态优化/线性规划：$\min_{x} \theta^\top x$</td>
-                    <td>动态规划/MDP：$\max_\pi \mathbb{E}_\pi [\sum \beta^t \phi^\top \theta]$</td>
-                </tr>
-                <tr>
-                    <td><strong>可行域表示</strong></td>
-                    <td>决策向量可行域 $\mathcal{X}(u)$</td>
-                    <td>占用测量凸多面体 $\mathcal{M}(P)$</td>
-                </tr>
-                <tr>
-                    <td><strong>校准约束判定</strong></td>
-                    <td>LP 强对偶条件 / KKT 条件</td>
-                    <td>贝尔曼预解式 $W_\pi = (I - \beta P_\pi)^{-1} \Phi_\pi$</td>
-                </tr>
-                <tr>
-                    <td><strong>校准问题维度</strong></td>
-                    <td>原始维度 $d$（对偶变换后）</td>
-                    <td>从 $d + |S|$ 精确降维至 $d$</td>
-                </tr>
-                <tr>
-                    <td><strong>鲁棒问题形式 (RFO)</strong></td>
-                    <td>鲁棒线性规划 $\min_x \max_\theta \theta^\top x$</td>
-                    <td>占用空间凸规划 $\max_{d \in \mathcal{M}(P)} \min_\theta \theta^\top \Phi^\top d$</td>
-                </tr>
-                <tr>
-                    <td><strong>覆盖率保证</strong></td>
-                    <td>有限样本分布自由 $\ge \gamma$</td>
-                    <td>演示者群体间有限样本分布自由 $\ge \gamma$</td>
-                </tr>
-                <tr>
-                    <td><strong>凸性破坏边界</strong></td>
-                    <td>非线性目标函数可能破坏凸性</td>
-                    <td>转移概率不确定性耦合破坏凹性 (Jensen 违背)</td>
-                </tr>
-            </tbody>
+          <thead><tr><th>对象</th><th>公式</th><th>一句话解释</th></tr></thead>
+          <tbody>
+            <tr><td>占用测度</td><td>\(\mu_\pi=(1-\beta)\E_\pi\sum_t\beta^t\mathbf1_{(s_t,a_t)}\)</td><td>策略的折扣访问频率。</td></tr>
+            <tr><td>策略价值</td><td>\(V_\theta(\mu)=\theta^\top\Phi^\top\mu/(1-\beta)\)</td><td>奖励权重与期望特征的内积。</td></tr>
+            <tr><td>占用跨度</td><td>\(\Dnorm{v}=\max_\mu V_v(\mu)-\min_\mu V_v(\mu)\)</td><td>奖励差最多拉开多少策略价值。</td></tr>
+            <tr><td>射影跨度距离</td><td>\(d_\circ(\theta,\theta')=\Dnorm{\theta/\Dnorm{\theta}-\theta'/\Dnorm{\theta'}}\)</td><td>忽略正尺度与加性空方向。</td></tr>
+            <tr><td>Regret 上界</td><td>\(\operatorname{Reg}_\theta(\pi_{\theta'})\le\Dnorm{\theta-\theta'}\)</td><td>跨度控制优化错误奖励的损失。</td></tr>
+            <tr><td>可行奖励锥</td><td>\(K(\pi)=\{\theta:Q^\pi_\theta(s,a)\le Q^\pi_\theta(s,\pi(s))\}\)</td><td>所有能解释观测策略的奖励。</td></tr>
+            <tr><td>Conformal 分数</td><td>\(s_k=\min_{\theta\in K(\pi_k)}\Dnorm{\theta-\bar\theta^\circ}\)</td><td>单位跨度中心到可行奖励锥的 LP 距离。</td></tr>
+            <tr><td>相交保证</td><td>\(\P[K(\pi_{\rm new})\cap B_{q_\gamma}\ne\varnothing]\ge\gamma\)</td><td>新策略至少有一种兼容奖励落入集合。</td></tr>
+            <tr><td>包含半径</td><td>\(R=\min\{2,2q_\gamma+\eta\}\)（\(q_\gamma&lt;1\)）</td><td>用 fiber 宽度把相交升级为潜在射线包含。</td></tr>
+            <tr><td>相对鲁棒目标</td><td>\(\max_\mu\min_{\theta\in B_R}[V_\theta(\mu)-V_\theta(\mu_{\rm ref})]\)</td><td>在包含集合上防守相对参考策略的最坏优势。</td></tr>
+          </tbody>
         </table>
-
-        <div class="box" style="text-align: center; font-weight: 500;">
-            <p><strong>总结（致大一数学系同学）：</strong></p>
-            <p>这两篇论文展现了现代应用数学与理论机器学习结合的典范：将实际问题归结为优化模型 $\rightarrow$ 发现经典点估计在极端情况下的发散缺陷 $\rightarrow$ 引入符合性预测构造统计不确定性集 $\rightarrow$ 利用线性代数（预解式/Woodbury）与凸分析（凹函数极值/对偶）攻克计算瓶颈。希望本指南能为你打开数据科学与优化理论的大门！</p>
-        </div>
-    </section>
-
-    <footer>
-        <p>Conformal Inverse Optimization & CP-IRL Mathematical Foundations Summary &bull; Designed for Mathematics Undergraduates</p>
-    </footer>
+        <div class="one-line">一句话：conformal 给 \(q_\gamma\)，识别结构给 \(\eta\)，两者合成 \(R\)；只有当 \(R&lt;1\) 时，参考相对的鲁棒处方才可能非平凡。</div>
+        <p>
+          <span class="pill">表格型 MDP</span><span class="pill">线性奖励</span>
+          <span class="pill">完整最优策略</span><span class="pill">演示者交换性</span>
+          <span class="pill">边际覆盖</span>
+        </p>
+      </section>
+    </main>
+  </div>
+  <footer>
+    <p>本页面是论文 <a href="paper/main.pdf">《Calibrating What Behavior Identifies: Conformal Reward Sets for Inverse Reinforcement Learning》</a> 的中文数学导读；保证边界与当前修订版保持一致。</p>
+  </footer>
 </div>
-
 </body>
 </html>

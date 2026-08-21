@@ -57,21 +57,37 @@ def main():
 
     fig, ax = plt.subplots(figsize=(5.0, 3.6))
 
-    ax.plot(us, mean_classic, marker="o", color=COLOR_CLASSIC, linewidth=2,
+    # Transform to log10 so the linear axis is equally spaced at integer exponents
+    log_mean_classic = np.log10(np.maximum(mean_classic, 1e-12))
+    log_std_classic  = std_classic / (np.maximum(mean_classic, 1e-12) * np.log(10))
+    log_mean_cirl    = np.log10(np.maximum(mean_cirl, 1e-12))
+    log_std_cirl     = std_cirl / (np.maximum(mean_cirl, 1e-12) * np.log(10))
+
+    ax.plot(us, log_mean_classic, marker="o", color=COLOR_CLASSIC, linewidth=2,
              label="Classic (point-estimate) IRL", zorder=3)
-    ax.fill_between(us, np.maximum(mean_classic - std_classic, 1e-4),
-                     mean_classic + std_classic, color=COLOR_CLASSIC, alpha=0.15)
+    ax.fill_between(us,
+                     log_mean_classic - log_std_classic,
+                     log_mean_classic + log_std_classic,
+                     color=COLOR_CLASSIC, alpha=0.15)
 
-    ax.plot(us, mean_cirl, marker="s", color=COLOR_CIRL, linewidth=2,
+    ax.plot(us, log_mean_cirl, marker="s", color=COLOR_CIRL, linewidth=2,
              label="CP-IRL (calibrated, robust)", zorder=3)
-    ax.fill_between(us, np.maximum(mean_cirl - std_cirl, 1e-4),
-                     mean_cirl + std_cirl, color=COLOR_CIRL, alpha=0.15)
+    ax.fill_between(us,
+                     log_mean_cirl - log_std_cirl,
+                     log_mean_cirl + log_std_cirl,
+                     color=COLOR_CIRL, alpha=0.15)
 
-    ax.set_yscale("log")
+    # Linear axis with integer log10 tick labels
+    ticks = [-3, -2, -1, 0, 1, 2, 3]
+    ax.set_yticks(ticks)
+    ax.set_yticklabels([str(t) for t in ticks])
+    ax.set_ylim(-3.5, 3.5)
     ax.set_xlabel("Scaling parameter $u$")
-    ax.set_ylabel("True-reward regret (AOG), log scale")
-    ax.set_title("Separation: classic IRL's regret diverges,\nCP-IRL's shrinks (10 seeds, shaded = std)")
-    ax.legend(frameon=False, loc="center left")
+    ax.set_ylabel(r"$\lg$(True-reward regret / AOG)")
+    ax.set_title("Separation: classic IRL's regret diverges,\nCP-IRL's shrinks (10 seeds, shaded = std)", fontsize=10)
+    # Legend at the bottom-left in the empty space
+    ax.legend(frameon=True, facecolor="white", edgecolor="none", framealpha=0.95,
+              loc="lower left", bbox_to_anchor=(0.04, 0.04), fontsize=8.5)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.grid(True, which="major", axis="y", alpha=0.25)

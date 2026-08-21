@@ -73,17 +73,23 @@ def main():
     fig, axes = plt.subplots(1, 2, figsize=(7.5, 3.0))
 
     # Panel (a): systematic bias -- robustification helps
-    ax = axes[0]
+    # Transform to log10 so ticks are equally spaced integers
+    log_biased_classic = np.log10(np.maximum(biased_classic, 1e-12))
+    log_biased_cirl    = np.log10(np.maximum(biased_cirl, 1e-12))
     x = np.arange(len(us))
     w = 0.35
-    ax.bar(x - w / 2, biased_classic, w, color=COLOR_CLASSIC, label="Classic IRL")
-    ax.bar(x + w / 2, biased_cirl, w, color=COLOR_CIRL, label="CP-IRL")
-    ax.set_yscale("log")
+    ax = axes[0]
+    ax.bar(x - w / 2, log_biased_classic, w, color=COLOR_CLASSIC, label="Classic IRL")
+    ax.bar(x + w / 2, log_biased_cirl, w, color=COLOR_CIRL, label="CP-IRL")
+    ticks_a = [-3, -2, -1, 0, 1, 2, 3]
+    ax.set_yticks(ticks_a)
+    ax.set_yticklabels([str(t) for t in ticks_a])
+    ax.set_ylim(-3.5, 3.5)
     ax.set_xticks(x)
     ax.set_xticklabels([f"$u={u}$" for u in us])
-    ax.set_ylabel("True-reward regret (AOG)")
+    ax.set_ylabel(r"$\lg$(True-reward regret / AOG)")
     ax.set_title("(a) Systematic bias:\nrobustification helps", fontsize=9)
-    ax.legend(fontsize=7, loc="upper left", frameon=False)
+    ax.legend(fontsize=7, loc="lower left", bbox_to_anchor=(0.04, 0.04), frameon=True, facecolor="white", edgecolor="none", framealpha=0.85)
 
     # Panel (b): ordinary noise -- robustification hurts
     ax = axes[1]

@@ -39,19 +39,29 @@ def dkw_quantile_threshold(c_ks: np.ndarray, gamma: float, delta: float = 0.05) 
     conservative / gives a bigger alpha, matching conformal_calibrate's convention
     where alpha = arccos(c_tau)).
 
-    We want F(c_tau) <= 1-gamma with high confidence, where F is the true CDF. DKW
-    gives sup_x|F_hat(x)-F(x)| <= eps with probability >= 1-delta, so taking the
-    empirical (1-gamma-eps)-quantile (clipped to [0,1]) as c_tau guarantees
-    F(c_tau) <= F_hat(c_tau) + eps = (1-gamma-eps) + eps = 1-gamma, hence
-    P(c>=c_tau) = 1-F(c_tau) >= gamma, as required. Smaller delta -> larger eps ->
+    We need the strict CDF F_<(c_tau)=P(c<c_tau) to be at most 1-gamma.
+    Under the DKW event, choosing an ascending order statistic whose empirical
+    left limit is at most 1-gamma-eps guarantees this inequality, including for
+    atomic score distributions. If that target is negative, the sentinel -1
+    gives certain (but uninformative) coverage. Smaller delta -> larger eps ->
     more conservative (smaller) c_tau -> larger alpha; smaller N -> looser threshold
     (eps grows as 1/sqrt(N), vs conformal's exact O(1/N) finite-sample validity with
     no confidence-level parameter at all).
     """
+    c_ks = np.asarray(c_ks, dtype=float)
     N = len(c_ks)
+    if N == 0:
+        raise ValueError("c_ks must contain at least one score")
+    if not 0.0 < gamma < 1.0:
+        raise ValueError(f"gamma must lie strictly between 0 and 1, got {gamma}")
+    if not 0.0 < delta < 1.0:
+        raise ValueError(f"delta must lie strictly between 0 and 1, got {delta}")
     eps = np.sqrt(np.log(2.0 / delta) / (2.0 * N))
-    target_quantile = np.clip((1.0 - gamma) - eps, 0.0, 1.0)
-    return float(np.quantile(c_ks, target_quantile))
+    left_mass = (1.0 - gamma) - eps
+    if left_mass < 0.0:
+        return -1.0
+    rank = int(np.floor(N * left_mass)) + 1  # one-indexed ascending rank
+    return float(np.sort(c_ks)[rank - 1])
 
 
 def concentration_calibrate(c_ks: np.ndarray, gamma: float,

@@ -12,3 +12,15 @@ runs
 *.fls
 *.fdb_latexmk
 *.run.xml
+
+# Scratch, trial, and personal-note material; not part of the reproducible record.
+tmp/
+
+# Regenerable experiment outputs (rerun the corresponding experiments/run_*.py to reproduce).
+experiments/*.json
+
+# Upstream template archive; the extracted neurips_2026.sty is tracked instead.
+Formatting_Instructions_For_NeurIPS_2026.zip
+
+# Submission bundle, rebuilt from the tracked sources.
+paper/supplementary.zip

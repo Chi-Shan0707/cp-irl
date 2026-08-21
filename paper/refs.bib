@@ -1,16 +1,19 @@
-% References for paper/draft.md, assembled from the verified reference list
-% (all 22 entries checked live against Semantic Scholar/arXiv/publisher pages,
-% 2026-08-04 -- see the "Citation-workflow note" in paper/draft.md for the
-% verification pass that caught and fixed 3 hallucinated author attributions,
-% 1 wrong year, and 1 wrong author order before this file was assembled).
+% References assembled from primary publisher and arXiv records. Entries added
+% during the 2026-08-18 workshop-readiness audit were fetched from the PMLR or
+% arXiv records rather than generated from memory.
 
 @inproceedings{lin2024conformal,
   title     = {Conformal Inverse Optimization},
   author    = {Lin, Bo and Delage, Erick and Chan, Timothy C. Y.},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {37},
+  pages     = {63534--63564},
+  publisher = {Curran Associates, Inc.},
   year      = {2024},
+  doi       = {10.52202/079017-2029},
   eprint    = {2402.01489},
-  archivePrefix = {arXiv}
+  archivePrefix = {arXiv},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2024/file/7423902b5534e2b267438c85444a54b1-Paper-Conference.pdf}
 }
 
 @article{ahuja2001inverse,
@@ -31,24 +34,31 @@
   volume  = {65},
   number  = {3},
   pages   = {1115--1135},
-  year    = {2018},
+  year    = {2019},
   doi     = {10.1287/mnsc.2017.2992}
 }
 
 @inproceedings{chenreddy2022datadriven,
   title     = {Data-Driven Conditional Robust Optimization},
   author    = {Chenreddy, Abhilash Reddy and Bandi, Nymisha and Delage, Erick},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
-  year      = {2022}
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {35},
+  pages     = {9525--9537},
+  publisher = {Curran Associates, Inc.},
+  year      = {2022},
+  doi       = {10.52202/068431-0692},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2022/file/3df874367ce2c43891aab1ab23ae6959-Paper-Conference.pdf}
 }
 
 @inproceedings{sun2023predictthencalibrate,
   title     = {Predict-then-Calibrate: A New Perspective of Robust Contextual LP},
-  author    = {Sun, Chunlin and Liu, Linyu and Li, Xin},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  author    = {Sun, Chunlin and Liu, Linyu and Li, Xiaocheng},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {36},
   year      = {2023},
   eprint    = {2305.15686},
-  archivePrefix = {arXiv}
+  archivePrefix = {arXiv},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2023/file/397271e11322fae8ba7f827c50ca8d9b-Paper-Conference.pdf}
 }
 
 @book{vovk2005algorithmic,
@@ -88,15 +98,15 @@
   volume  = {53},
   number  = {5},
   pages   = {780--798},
-  year    = {2005}
+  year    = {2005},
+  doi     = {10.1287/opre.1050.0216}
 }
 
 @inproceedings{gadot2024solving,
   title     = {Solving Non-Rectangular Reward-Robust MDPs via Frequency Regularization},
-  author    = {Gadot, Uri and Derman, Esther and Kumar, Navdeep and Elfatihi, Maxence and Levy, Kfir and Mannor, Shie},
+  author    = {Gadot, Uri and Derman, Esther and Kumar, Navdeep and Elfatihi, Maxence Mohamed and Levy, Kfir and Mannor, Shie},
   booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
   volume    = {38},
-  number    = {19},
   pages     = {21090--21098},
   year      = {2024},
   eprint    = {2309.01107},
@@ -107,7 +117,9 @@
   title   = {Learning Sequential Decisions from Multiple Sources via Group-Robust Markov Decision Processes},
   author  = {Xu, Mingyuan and Xia, Zongqi and Cai, Tianxi and Zhou, Doudou and Si, Nian},
   journal = {arXiv preprint arXiv:2602.01825},
-  year    = {2026}
+  year    = {2026},
+  eprint  = {2602.01825},
+  archivePrefix = {arXiv}
 }
 
 @inproceedings{petrik2019beyond,
@@ -121,16 +133,20 @@
 
 @article{gupta2023cammarl,
   title   = {CAMMARL: Conformal Action Modeling in Multi Agent Reinforcement Learning},
-  author  = {Gupta, Nikunj and Kahou, Samira Ebrahimi},
+  author  = {Gupta, Nikunj and Nath, Somjit and Kahou, Samira Ebrahimi},
   journal = {arXiv preprint arXiv:2306.11128},
-  year    = {2023}
+  year    = {2023},
+  eprint  = {2306.11128},
+  archivePrefix = {arXiv}
 }
 
 @article{pan2026uncertaintyaware,
   title   = {Uncertainty-Aware Reward Modeling for Stable RLHF},
   author  = {Pan, Licheng and Yang, Haocheng and Li, Haoxuan and Sun, Yichen and Lu, Yunsheng and Wang, Shijian and Shen, Lei and Lu, Yuan and Chu, Zhixuan and Wang, Hao},
   journal = {arXiv preprint arXiv:2606.19818},
-  year    = {2026}
+  year    = {2026},
+  eprint  = {2606.19818},
+  archivePrefix = {arXiv}
 }
 
 @inproceedings{ng2000algorithms,
@@ -144,9 +160,33 @@
 @inproceedings{poiani2024suboptimal,
   title     = {Sub-optimal Experts mitigate Ambiguity in Inverse Reinforcement Learning},
   author    = {Poiani, Riccardo and Curti, Gabriele and Metelli, Alberto Maria and Restelli, Marcello},
-  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {37},
   pages     = {85778--85823},
-  year      = {2024}
+  publisher = {Curran Associates, Inc.},
+  year      = {2024},
+  doi       = {10.52202/079017-2724},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2024/file/9bcd1fa0c05e5f25ba7a1261f1852e82-Paper-Conference.pdf}
+}
+
+@inproceedings{kim2024unified,
+  title     = {A Unified Linear Programming Framework for Offline Reward Learning from Human Demonstrations and Feedback},
+  author    = {Kim, Kihyun and Zhang, Jiawei and Ozdaglar, Asuman E. and Parrilo, Pablo},
+  booktitle = {Proceedings of the 41st International Conference on Machine Learning},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {235},
+  pages     = {24694--24712},
+  year      = {2024},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v235/kim24ak.html}
+}
+
+@article{kim2026feasible,
+  title   = {Inverse Reinforcement Learning without an Optimal Demonstrator: A Feasible Reward Set Approach},
+  author  = {Kim, Kihyun and Deshmukh, Shripad and Vlassis, Nikos and Zhang, Jiawei},
+  journal = {arXiv preprint arXiv:2605.30903},
+  year    = {2026},
+  doi     = {10.48550/arXiv.2605.30903}
 }
 
 @article{lazzati2025robustness,
@@ -166,12 +206,52 @@
   archivePrefix = {arXiv}
 }
 
-@article{skalse2022invariance,
-  title   = {Invariance in Policy Optimisation and Partial Identifiability in Reward Learning},
-  author  = {Skalse, Joar and Farrugia-Roberts, Matthew and Russell, Stuart and Abate, Alessandro and Gleave, Adam},
-  journal = {arXiv preprint arXiv:2203.07475},
-  year    = {2022},
-  note    = {Also published at ICML 2023, PMLR vol. 202, pp. 32033--32058}
+@inproceedings{skalse2023invariance,
+  title     = {Invariance in Policy Optimisation and Partial Identifiability in Reward Learning},
+  author    = {Skalse, Joar Max Viktor and Farrugia-Roberts, Matthew and Russell, Stuart and Abate, Alessandro and Gleave, Adam},
+  booktitle = {Proceedings of the 40th International Conference on Machine Learning},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {202},
+  pages     = {32033--32058},
+  publisher = {PMLR},
+  year      = {2023},
+  url       = {https://proceedings.mlr.press/v202/skalse23a.html}
+}
+
+@inproceedings{skalse2024starc,
+  title     = {{STARC}: A General Framework for Quantifying Differences Between Reward Functions},
+  author    = {Skalse, Joar Max Viktor and Farnik, Lucy and Motwani, Sumeet Ramesh and Jenner, Erik and Gleave, Adam and Abate, Alessandro},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  eprint    = {2309.15257},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{gleave2021epic,
+  title     = {Quantifying Differences in Reward Functions},
+  author    = {Gleave, Adam and Dennis, Michael and Legg, Shane and Russell, Stuart and Leike, Jan},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2021},
+  eprint    = {2006.13900},
+  archivePrefix = {arXiv}
+}
+
+@inproceedings{wulfe2022dard,
+  title     = {Dynamics-Aware Comparison of Learned Reward Functions},
+  author    = {Wulfe, Blake and Ellis, Logan and Mercat, Jean and McAllister, Rowan and Gaidon, Adrien and Balakrishna, Ashwin},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2022},
+  eprint    = {2201.10081},
+  archivePrefix = {arXiv}
+}
+
+@article{zhou2025calibrating,
+  title   = {Calibrating Decision Robustness via Inverse Conformal Risk Control},
+  author  = {Zhou, Wenbin and Zhu, Shixiang},
+  journal = {arXiv preprint arXiv:2510.07750},
+  year    = {2025},
+  eprint  = {2510.07750},
+  archivePrefix = {arXiv}
 }
 
 @inproceedings{christiano2017deep,
@@ -186,8 +266,10 @@
   title     = {Direct Preference Optimization: Your Language Model is Secretly a Reward Model},
   author    = {Rafailov, Rafael and Sharma, Archit and Mitchell, Eric and Ermon, Stefano and Manning, Christopher D. and Finn, Chelsea},
   booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume    = {36},
   pages     = {53728--53741},
   year      = {2023},
+  doi       = {10.52202/075280-2338},
   eprint    = {2305.18290},
   archivePrefix = {arXiv}
 }

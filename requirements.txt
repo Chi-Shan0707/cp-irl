@@ -1,0 +1,8 @@
+# Tested with Python 3.10 in the `rlenv` environment on 2026-08-15.
+numpy>=2.2,<3
+scipy>=1.15,<2
+cvxpy>=1.7,<2
+matplotlib>=3.10,<4
+joblib>=1.5,<2
+pytest>=9,<10
+torch>=2.0

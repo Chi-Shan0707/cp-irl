@@ -168,10 +168,10 @@ def c_k_partial(mdp: TabularMDP, visited_actions: dict[int, int], theta_bar: np.
     states (it does not appear in the objective, so this costs nothing but does
     relax the feasible set, exactly as T2_proof.md predicts: Theta-hat_empirical
     (visited-only) is a SUPERSET of the true Theta-hat (full-policy), so c_k here is
-    an UPPER BOUND on what the full-policy c_k would have been -- the resulting
-    calibration is still valid (same exchangeability argument, T2_proof.md Sec 5
-    point 1) but covers the larger, less informative empirical set, typically
-    giving a WIDER (more conservative) alpha than full-policy observation would.
+    an UPPER BOUND on what the full-policy c_k would have been. Because arccos is
+    decreasing, this typically gives a NARROWER cap. Exchangeability still gives
+    intersection coverage for the relaxed empirical feasible set, but that does
+    not imply coverage for the unobserved full-policy feasible set.
 
     `visited_actions`: dict mapping visited state index -> the action observed
     there (majority-vote action if visited multiple times with different actions).
