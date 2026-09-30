@@ -10,7 +10,7 @@ polytope), the support-function span of the linear functional v is
              = V*_v(mu0) + V*_{-v}(mu0)
 
 i.e. two value_iteration calls -- no LP needed for the seminorm alone. It is
-zero exactly on the annihilator A(P) (shaping AND every other behaviorally-null
+zero exactly on the annihilator N (shaping AND every other behaviorally-null
 direction, not just potential shaping), invariant under feature reparametrization
 theta -> A^{-T} theta for any invertible A, and satisfies Reg_r(pi_{r'}) <=
 ||r - r'||_D with constant 1 -- a strictly tighter and coordinate-free
@@ -38,7 +38,7 @@ def span_seminorm(mdp: TabularMDP, v: np.ndarray) -> float:
     Equal to max_{mu in M(P)} <v,Phi^T mu>/(1-gamma) - min_{mu in M(P)}
     <v,Phi^T mu>/(1-gamma): the range of the linear functional v over the
     occupancy polytope. Zero iff v annihilates every occupancy difference (the
-    behaviorally-null subspace A(P), which strictly contains the
+    behaviorally-null subspace N, which contains and can strictly exceed the
     potential-shaping subspace S_pot -- CPIRL_FIRST_PRINCIPLES.md Sec 1.3).
     """
     v = np.asarray(v, dtype=float)
@@ -235,7 +235,7 @@ def normalized_distance_to_cone(
     equals the ordinary distance from the unit-span representative of
     ``theta_bar`` to ``K(pi)``.  It lies in [0, 1], remains a single LP, and is
     invariant under ``theta_bar -> c theta_bar + a`` for ``c>0`` and
-    ``a in A(P)``.  It is deliberately *not* the generally nonconvex distance to
+    ``a in N``.  It is deliberately *not* the generally nonconvex distance to
     the unit-span slice of the cone.
 
     Returns ``(score, witness, theta_bar_unit)``.

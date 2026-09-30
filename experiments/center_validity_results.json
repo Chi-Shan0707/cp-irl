@@ -1,0 +1,302 @@
+[
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 0,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 16.71428461783188,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 1,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 12.8233614512654,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 2,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 14.457637365638462,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 3,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 19.28263389986112,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 4,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 21.811734823820878,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 5,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 11.8223016981487,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 6,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 21.166660738941555,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 7,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 14.833503964180034,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 8,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 15.617722192104114,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "random_mdp",
+    "seed": 9,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 15.441492061999519,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 0,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 2.5362397400873546,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 1,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 3.818651262726447,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 2,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 3.7158382365365927,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 3,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 11.018171847639897,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 4,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 2.7449322841591095,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 5,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 4.578293171488079,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 6,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 1.9761969838327786e-14,
+    "projective_center_valid": false,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 7,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 1.185175519664619,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 8,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 0.8557045689549452,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "gridworld",
+    "seed": 9,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 9.172125532594968,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 0,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 4.076474669507347,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 1,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 3.6428165017870526,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 2,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 5.895014925093463,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 3,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 1.96968871169973,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 4,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 6.249618649805412,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 5,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 4.24977812715394,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 6,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 3.636570215161939,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 7,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 6.105642249243681,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 8,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 4.6660168803942454,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  },
+  {
+    "schema_version": "projective-center-v1",
+    "env": "objectworld",
+    "seed": 9,
+    "estimator": "LP-IRL",
+    "n_train": 20,
+    "occupancy_span": 4.310614402260455,
+    "projective_center_valid": true,
+    "atol": 1e-10
+  }
+]

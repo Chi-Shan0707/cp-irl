@@ -2,9 +2,9 @@
 
 # CP-IRL
 
-**Conformal Prediction for Inverse Reinforcement Learning**
+**Calibrating What Behavior Can Identify**
 
-*From Inverse Optimization to Sequential Decisions*
+*Conformal Reward Sets for Inverse Reinforcement Learning*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-8a3b2b.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](#environment)
@@ -21,55 +21,73 @@
 
 ---
 
-CP-IRL asks which parts of Conformal Inverse Optimization (CIO) survive the
-move from one-shot decisions to inverse reinforcement learning, and answers
-component by component. The conformal calibration itself transfers untouched —
-it is split conformal prediction, and no claim here improves on it. Two things
-do not transfer: CIO's angular score is measured in reward coordinates that
-behavior does not fix, so we replace it with a distance in the span seminorm
-induced by the occupancy polytope; and the calibrated event ("some reward in
-the set explains the new demonstrator") is weaker than what a robust
-prescription needs ("the demonstrator's own reward is in the set"). Closing
-that second gap takes an explicit identification assumption — a certified
-inverse-fiber diameter — which expands the intersection radius into a latent
-reward-ray containment radius used by a reference-relative robust policy.
+**Yuhan Chi** · School of Mathematical Sciences, Fudan University
+<yhchi25@m.fudan.edu.cn>
 
-<details>
-<summary><strong>Abstract</strong></summary>
-<br>
+Accepted as a **poster** at the NeurIPS 2026 workshop
+[PUDM](https://sites.google.com/view/neurips-2026-workshop-pudm) —
+*Physical Understanding for Decision-Making: Bridging Foundation Models and
+Reliable Agents*, Sydney, 11–12 December 2026.
 
-**CP-IRL** uses one geometric object — the occupancy-difference span — to
-calibrate Bellman inverse fibers and to derive the downstream robust penalty.
-Unit-span normalization makes the construction invariant to positive reward
-scale, additive null directions, and invertible feature reparameterizations
-while keeping the score an LP; a feature reparameterization that leaves every
-reward and policy unchanged moves CIO's angular radius by 24.3° and ours by
-2e-8. Split conformal gives exact inverse-fiber intersection coverage (measured
-0.82 at target 0.80), but containment of the demonstrator's own reward at the
-same radius reaches only 0.44. Given a certified fiber diameter `eta`, the
-implementation converts the calibrated radius `q` into a containment radius `R`
-and solves a safe reference-relative robust LP. If `R >= 1`, the guarantee is
-provably degenerate and the solver returns the reference explicitly.
+## The question
 
-</details>
+Conformal inverse optimization (CIO) handles one-shot inverse problems: fit a
+point estimate, calibrate a radius on held-out decisions, optimize robustly
+over the resulting set. The recipe looks portable to inverse reinforcement
+learning. This paper reports what happens when it is carried over, component
+by component — and the answer is that the conformal step is the one part that
+transfers untouched.
+
+**The score does not survive.** CIO measures a demonstration by an angle
+between reward vectors. That angle depends on coordinates the problem never
+fixes: a feature reparameterization that changes no reward and no demonstrator's
+policy still moves the calibrated angular radius by 24° on average at condition
+number κ = 200. Scoring instead by the spread a reward difference induces over
+achievable policy values restores invariance, keeps the score a linear
+program, and is the pointwise smallest seminorm that bounds worst-case regret.
+
+**The event does not survive either.** Which event a quantile certifies is
+decided by which distance to the cone of rewards explaining new behavior gets
+scored. Scoring the *nearest* point certifies intersection with that cone;
+scoring the *farthest* point of the normalized cone certifies containment of
+the demonstrator's own latent reward. Only the first is a linear program. At a
+0.80 target we measure the two events at **0.82** and **0.44** on the same
+calibration run.
+
+**So we price the relaxation.** Given a certified cone width η, the
+calibrated radius q converts into a containment radius `R = min{2, 2q + η}`,
+and `R ≥ 1` is provably degenerate: the robust policy collapses to the
+reference. Without side information η = 2 and that is always the case. The
+paper states this rather than hiding it — the certified policy is worse than
+the point estimate in every cell of Table 2, and the constructive part of the
+contribution is left for the reader to build.
 
 ## What's here
 
 - tabular MDP, gridworld, and Objectworld environments
 - classical, maximum-entropy, and Bayesian IRL estimators
-- conformal reward-set calibration based on Bellman-optimal feasible rewards
-- intrinsic reward-ray normalization and a two-stage `q, eta -> R` bridge
+- Bellman-resolvent feasible-reward sets and the span-seminorm conformal score
+- intrinsic reward-ray normalization and the two-stage `q, η → R` bridge
 - an occupancy-measure solver for robust MDPs with reward ambiguity
-- experiment scripts for coverage, regret, separation, and ablation studies
-- the NeurIPS 2026 workshop paper and its figure source
+- the three experiment scripts behind the paper's numbers, with their recorded
+  JSON outputs; superseded probes and ablations are in `experiments/legacy/`
+- the camera-ready paper, its figure sources, and the submitted version
 
 ## Paper
 
-The current manuscript is at [`paper/main.pdf`](paper/main.pdf). A math
-walkthrough of the core theory — definitions, full proofs, and a worked
-geometric counterexample — is at
-[`math_summary.html`](math_summary.html), also published via
-[GitHub Pages](https://chi-shan0707.github.io/cp-irl/).
+| File | What it is |
+|---|---|
+| [`paper/main.pdf`](paper/main.pdf) | camera-ready, built by `make paper` |
+| `paper/main.tex` | camera-ready source: `[sglblindworkshop, final]`, named author |
+| `paper/main_full9_revised.tex` | the submitted double-blind version, unchanged; its PDF is byte-identical to the one on OpenReview |
+| [`paper/ERRATA.md`](paper/ERRATA.md) | every change between the reviewed version and the camera-ready |
+| [`paper/PROVENANCE.md`](paper/PROVENANCE.md) | which script and recorded file each number in the paper comes from |
+| `paper/archive/` | the 19 August draft (source and PDF), plus the figures and figure scripts of an earlier draft, kept for provenance |
+| [`math_summary.html`](math_summary.html) | a guided walk through the geometry, with proofs |
+
+A math walkthrough of the core theory — the seminorm, the two events, the
+`q → R` bridge, and the degeneracy threshold — is at
+[`math_summary.html`](math_summary.html).
 
 ## Environment
 
@@ -80,11 +98,14 @@ tested dependency ranges with:
 python -m pip install -r requirements.txt
 ```
 
-Tests run from the repository root with:
+Common tasks, via the Makefile (`make help` lists them all):
 
 ```bash
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. python -m pytest \
-  tests cio/tests irl/tests robust/tests conformal/tests -q
+make paper        # build paper/main.pdf (4-pass, runs bibtex)
+make test         # 436 unit tests
+make figures      # redraw both figures from the recorded JSONs
+make verify       # re-check the identities listed in App. C numerically
+make experiments  # rerun the three scripts behind the paper's numbers (hours)
 ```
 
 ## Repository layout
@@ -102,35 +123,31 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. python -m pytest \
 
 ## Scope
 
-The current implementation targets tabular MDPs with rewards linear in known
-features. A useful safe prescription requires an application-specific
-certificate satisfying `2*q + eta < 1`; the universal `eta = 2` bound is valid
-but forces the robust policy back to the reference. The framework is complete,
-while learning or certifying a small fiber diameter is left to the intended
-application's additional information.
+The implementation targets tabular MDPs with rewards linear in known features.
+A useful safe prescription requires an application-specific certificate
+satisfying `2q + η < 1`; the universal `η = 2` bound is valid but forces the
+robust policy back to the reference. The framework is complete, while learning
+or certifying a small cone width is left to the intended application's
+additional information.
 
 ## Citation
 
-This is a working manuscript (NeurIPS 2026 workshop submission); it is not yet
-formally published. If you use this code or build on the results, please cite
-it as:
-
 ```bibtex
-@misc{chi2026cpirl,
-  title  = {Calibrating What Behavior Identifies: Conformal Reward Sets for
-            Inverse Reinforcement Learning},
-  author = {Chi, Yuhan},
-  year   = {2026},
-  note   = {Manuscript in preparation, Fudan University},
-  url    = {https://github.com/Chi-Shan0707/cp-irl}
+@inproceedings{chi2026cpirl,
+  title     = {Calibrating What Behavior Can Identify:
+               Conformal Reward Sets for Inverse Reinforcement Learning},
+  author    = {Chi, Yuhan},
+  booktitle = {Physical Understanding for Decision-Making:
+               Bridging Foundation Models and Reliable Agents},
+  series    = {NeurIPS 2026 Workshop},
+  year      = {2026},
+  note      = {Poster}
 }
 ```
 
-A machine-readable citation is also provided in
-[`CITATION.cff`](CITATION.cff) (GitHub renders this as a "Cite this
-repository" button). This entry will be updated with a venue and DOI once the
-paper is formally published — check back for the canonical citation if you're
-citing this after that point.
+A machine-readable version is in
+[`CITATION.cff`](CITATION.cff), which GitHub renders as a "Cite this
+repository" button. Add a DOI once the workshop proceedings are posted.
 
 ## License
 

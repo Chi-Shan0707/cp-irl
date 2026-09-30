@@ -1,8 +1,10 @@
 """Classic IO (sub-optimality loss) and conformal calibration (CIO Theorem 1) on the
 shortest-path network. See plan.md Sec 1 for the mapping from the CIO paper's notation.
 
-Theta domain: the unit ball {theta in R^d : ||theta||_2 <= 1} (no sign constraint —
-the network is a DAG so the forward LP is well-posed for any real edge costs).
+Theta domain: the unit ball {theta in R^d : ||theta||_2 <= 1} for conformal calibration
+(no sign constraint — the network is a DAG so the forward LP is well-posed for any
+real edge costs). The point estimate classic_io instead uses the simplex; see its
+docstring for why.
 """
 from __future__ import annotations
 

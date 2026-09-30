@@ -2,8 +2,11 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="CP-IRL 论文的中文数学友好导读：占用测度、Bellman 可行奖励锥、conformal 校准与相对鲁棒决策。">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CP-IRL 论文的中文数学导读：占用测度、Bellman 可行奖励锥、conformal 校准、包含半径与相对鲁棒决策。">
+  <meta name="author" content="Yuhan Chi">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#161513" media="(prefers-color-scheme: dark)">
   <title>CP-IRL 中文数学导读：校准行为真正能识别的奖励信息</title>
   <script>
     window.MathJax = {
@@ -11,12 +14,12 @@
         inlineMath: [['\\(', '\\)']],
         displayMath: [['\\[', '\\]']],
         processEscapes: true,
-        tags: 'ams',
         macros: {
           R: '\\mathbb{R}',
           E: '\\mathbb{E}',
           P: '\\mathbb{P}',
           M: '\\mathcal{M}',
+          DF: 'D_F',
           Dnorm: ['\\left\\lVert #1 \\right\\rVert_{\\mathcal D}', 1]
         }
       },
@@ -24,85 +27,169 @@
     };
   </script>
   <script id="MathJax-script" async
-          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+          integrity="sha384-OrHfGTnIbkl0do3N76qW/uWr38o91N05sbSPuYBPLH+hG8X/dNSrjZf3AGjzrCwC"
+          crossorigin="anonymous"
+          src="https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-mml-chtml.js"></script>
   <style>
-    * { box-sizing:border-box; }
-    body {
+    :root{
+      --bg:#fff;
+      --ink:#111;
+      --soft:#4a4744;
+      --muted:#75716b;
+      --line:#c9c6c2;
+      --line-soft:#e6e3e0;
+      --chip:#f6f5f3;
+      --c-warn:#9a5b16;   --c-warn-bg:#fdf5ea;
+      --c-limit:#37607f;  --c-limit-bg:#eef4f9;
+      --c-int:#35714e;    --c-int-bg:#eef6f1;
+      --c-prior:#5f4488;  --c-prior-bg:#f4f0fa;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#161513;
+        --ink:#eceae6;
+        --soft:#c8c4be;
+        --muted:#938e87;
+        --line:#3a3734;
+        --line-soft:#2a2825;
+        --chip:#201e1b;
+        --c-warn:#d59a52;   --c-warn-bg:#2a2117;
+        --c-limit:#7fb0d4;  --c-limit-bg:#18222a;
+        --c-int:#79c39b;    --c-int-bg:#17241d;
+        --c-prior:#ab90d6;  --c-prior-bg:#211c2b;
+      }
+    }
+    *{box-sizing:border-box;}
+    @media (prefers-reduced-motion: reduce){
+      *,*::before,*::after{transition:none !important; animation:none !important;}
+      html{scroll-behavior:auto;}
+    }
+    html{scroll-behavior:smooth;}
+    body{
       margin:0;
-      color:#111;
-      background:#fff;
+      color:var(--ink);
+      background:var(--bg);
       font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,sans-serif;
       font-size:17px;
       line-height:1.8;
+      -webkit-font-smoothing:antialiased;
     }
-    a { color:#111; text-decoration:underline; text-underline-offset:.15em; }
-    .page { width:min(900px,calc(100% - 40px)); margin:auto; padding:48px 0 72px; }
-    .hero { margin-bottom:38px; padding-bottom:25px; border-bottom:2px solid #111; }
-    .eyebrow { margin:0 0 8px; font-size:.9rem; }
-    h1 { margin:0; font-size:2.25rem; line-height:1.3; }
-    .subtitle { margin:16px 0 0; font-size:1.05rem; }
-    .layout { display:block; }
-    nav {
-      margin:0 0 45px;
-      padding:0 0 25px;
-      border-bottom:1px solid #777;
+    a{color:var(--ink); text-decoration:underline; text-underline-offset:.15em;}
+    a:hover{color:var(--c-limit);}
+    .page{width:min(900px,calc(100% - 40px)); margin:auto; padding:48px 0 72px;}
+    .hero{margin-bottom:34px; padding-bottom:24px; border-bottom:2px solid var(--ink);}
+    .eyebrow{margin:0 0 8px; font-size:.9rem; color:var(--muted);}
+    h1{margin:0; font-size:2.25rem; line-height:1.3; text-wrap:balance;}
+    .subtitle{margin:14px 0 0; font-size:1.02rem; color:var(--soft);}
+    .subtitle+.subtitle{margin-top:6px; color:var(--muted); font-size:.94rem;}
+
+    nav{margin:0 0 42px; padding:0 0 24px; border-bottom:1px solid var(--line);}
+    nav strong{display:block; margin-bottom:8px; font-size:.95rem;}
+    nav ol{columns:2; column-gap:40px; margin:0; padding-left:1.5rem;}
+    nav li{margin:4px 0; break-inside:avoid; line-height:1.5;}
+    nav li code{font-size:.85em; color:var(--muted);}
+    main{min-width:0;}
+    section{margin-bottom:56px;}
+    section+section{border-top:1px solid var(--line-soft); padding-top:44px;}
+    h2{margin:0 0 20px; padding-bottom:8px; border-bottom:1px solid var(--ink); font-size:1.6rem; line-height:1.4;}
+    h2 .num{margin-right:.35em; color:var(--muted); font-variant-numeric:tabular-nums;}
+    h3{margin:30px 0 12px; font-size:1.18rem; line-height:1.45;}
+    h4{margin:22px 0 8px; font-size:1rem; color:var(--soft);}
+    p{margin:13px 0;}
+    ul,ol{padding-left:1.45rem;}
+    li{margin:7px 0;}
+    .lead{font-size:1.04rem;}
+    code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.9em;}
+
+    .one-line{
+      margin:22px 0; padding:14px 18px; border-left:4px solid var(--ink);
+      background:var(--chip); font-size:1.05rem; font-weight:650;
     }
-    nav strong { display:block; margin-bottom:8px; }
-    nav ol { columns:2; column-gap:40px; margin:0; padding-left:1.4rem; }
-    nav li { margin:4px 0; break-inside:avoid; }
-    main { min-width:0; }
-    section {
-      margin-bottom:58px;
+
+    /* callouts: four distinct registers, four distinct treatments */
+    .callout{
+      --c:var(--muted); --c-bg:var(--chip);
+      margin:22px 0; padding:12px 18px;
+      border-left:3px solid var(--c);
+      background:var(--c-bg);
+      border-radius:0 3px 3px 0;
     }
-    h2 { margin:0 0 20px; padding-bottom:8px; border-bottom:1px solid #111; font-size:1.65rem; line-height:1.4; }
-    h2 .num {
-      margin-right:.3em;
+    .callout .title{margin-bottom:5px; font-weight:750; color:var(--c);}
+    .callout p:last-child, .callout ul:last-child, .callout ol:last-child{margin-bottom:0;}
+    .callout.warning{--c:var(--c-warn); --c-bg:var(--c-warn-bg);}
+    .callout.limit{--c:var(--c-limit); --c-bg:var(--c-limit-bg);}
+    .callout.intuition{--c:var(--c-int); --c-bg:var(--c-int-bg);}
+    .callout.prior{--c:var(--c-prior); --c-bg:var(--c-prior-bg);}
+
+    .math-card{
+      margin:22px 0; padding:12px 16px; border:1px solid var(--line);
+      background:var(--chip); border-radius:3px; overflow-x:auto;
     }
-    h3 { margin:30px 0 12px; font-size:1.2rem; line-height:1.45; }
-    p { margin:13px 0; } ul,ol { padding-left:1.45rem; } li { margin:7px 0; }
-    .lead { font-size:1.05rem; }
-    .one-line {
-      margin:22px 0; padding:14px 18px; border-left:4px solid #111;
-      font-size:1.06rem; font-weight:650;
+    .math-card .label{
+      font-size:.85rem; font-weight:700; color:var(--muted);
+      margin-bottom:6px; letter-spacing:.02em;
     }
-    .callout {
-      margin:22px 0; padding:10px 18px; border-left:3px solid #111;
+    .math-card mjx-container[display="true"]{margin:.35em 0 !important;}
+
+    .pipeline{
+      display:grid; grid-template-columns:repeat(4,1fr);
+      margin:22px 0; border:1px solid var(--ink); border-radius:3px;
+      list-style:none; padding:0; overflow:hidden;
     }
-    .callout .title { margin-bottom:4px; font-weight:750; }
-    .math-card {
-      margin:22px 0; padding:12px 16px; border:1px solid #777; overflow-x:auto;
+    .pipeline li{
+      padding:12px 10px; text-align:center; margin:0;
+      border-right:1px solid var(--ink); font-size:.9rem; line-height:1.6;
     }
-    .math-card .label { font-size:.88rem; font-weight:700; }
-    .pipeline { display:grid; grid-template-columns:repeat(4,1fr); margin:22px 0; border:1px solid #111; }
-    .pipeline div {
-      padding:12px 10px; text-align:center; border-right:1px solid #111;
-      font-size:.92rem;
+    .pipeline li:last-child{border-right:0;}
+    .pipeline .stage{display:block; font-size:.78rem; color:var(--muted); letter-spacing:.04em;}
+
+    table{width:100%; margin:22px 0; border-collapse:collapse; font-size:.9rem;}
+    caption{
+      caption-side:top; text-align:left; padding-bottom:8px;
+      font-size:.88rem; color:var(--muted); line-height:1.6;
     }
-    .pipeline div:last-child { border-right:0; }
-    table { width:100%; margin:22px 0; border-collapse:collapse; font-size:.91rem; }
-    th,td { padding:9px 10px; border:1px solid #333; text-align:left; vertical-align:top; }
-    th { font-weight:750; }
-    details { margin:18px 0; border:1px solid #777; }
-    summary { cursor:pointer; padding:12px 15px; font-weight:700; }
-    details>div { padding:0 18px 18px; }
-    .pill {
-      display:inline-block; margin-right:10px; font-size:.88rem;
+    th,td{padding:9px 10px; border:1px solid var(--line); text-align:left; vertical-align:top;}
+    th{font-weight:750; background:var(--chip);}
+
+    details{margin:18px 0; border:1px solid var(--line); border-radius:3px;}
+    summary{cursor:pointer; padding:12px 15px; font-weight:700;}
+    details>div{padding:2px 18px 18px;}
+
+    .pill{
+      display:inline-block; margin:6px 8px 0 0; padding:3px 11px;
+      border:1px solid var(--line); border-radius:999px;
+      background:var(--chip); font-size:.82rem; color:var(--soft);
     }
-    footer { margin-top:28px; padding-top:20px; border-top:1px solid #777; font-size:.88rem; }
-    @media(max-width:860px) {
-      .page { width:min(100% - 28px,760px); padding-top:28px; }
-      nav ol { columns:1; }
-      .pipeline { grid-template-columns:1fr 1fr; }
-      .pipeline div:nth-child(2) { border-right:0; }
-      .pipeline div:nth-child(-n+2) { border-bottom:1px solid #111; }
-      table { display:block; overflow-x:auto; }
+    .pill-row{margin-top:18px;}
+
+    footer{margin-top:34px; padding-top:20px; border-top:1px solid var(--line); font-size:.88rem; color:var(--muted);}
+
+    @media(max-width:860px){
+      .page{width:min(100% - 28px,760px); padding-top:28px;}
+      nav ol{columns:1;}
+      .pipeline{grid-template-columns:1fr 1fr;}
+      .pipeline li:nth-child(2){border-right:0;}
+      .pipeline li:nth-child(-n+2){border-bottom:1px solid var(--ink);}
+      table{display:block; overflow-x:auto;}
     }
-    @media(max-width:520px) {
-      body { font-size:16px; }
-      h1 { font-size:1.8rem; }
-      .pipeline { display:block; }
-      .pipeline div { border-right:0; border-bottom:1px solid #111; }
-      .pipeline div:last-child { border-bottom:0; }
+    @media(max-width:520px){
+      body{font-size:16px;}
+      h1{font-size:1.75rem;}
+      .pipeline{display:block;}
+      .pipeline li{border-right:0; border-bottom:1px solid var(--ink);}
+      .pipeline li:last-child{border-bottom:0;}
+    }
+    @media print{
+      body{background:#fff; color:#000; font-size:11pt;}
+      .page{width:100%; padding:0;}
+      nav{display:none;}
+      details{border:0;}
+      details>div{padding:0;}
+      details[open]>div, details>div{display:block;}
+      section{break-inside:auto;}
+      h2,h3{break-after:avoid;}
+      .math-card, table, .callout, figure{break-inside:avoid;}
+      a{color:#000; text-decoration:none;}
     }
   </style>
 </head>
@@ -111,449 +198,595 @@
   <header class="hero">
     <p class="eyebrow">CP-IRL 论文中文解读</p>
     <h1>校准行为真正能识别的奖励信息</h1>
-    <p class="subtitle">原文：<a href="paper/main.pdf">Calibrating What Behavior Identifies: Conformal Reward Sets for Inverse Reinforcement Learning</a></p>
-    <p class="subtitle">本文按“问题、几何、校准、部署、保证边界、实验结论”的顺序解释论文。证明只保留关键直觉和必要推导。</p>
+    <p class="subtitle">原文：<a href="paper/main.pdf">Calibrating What Behavior Can Identify: Conformal Reward Sets for Inverse Reinforcement Learning</a></p>
+    <p class="subtitle">按“问题 → 几何 → 校准 → 部署 → 保证边界 → 实验结论”的顺序展开。证明只保留关键直觉和必要推导，数值全部取自论文。</p>
   </header>
 
-  <div class="layout">
-    <nav aria-label="页面目录">
-      <strong>阅读路线</strong>
-      <ol>
-        <li><a href="#roadmap">先记住哪一句话？</a></li>
-        <li><a href="#problem">从策略反推奖励</a></li>
-        <li><a href="#occupancy">占用测度线性化 MDP</a></li>
-        <li><a href="#nonidentification">为什么奖励不可识别？</a></li>
-        <li><a href="#geometry">占用跨度半范数</a></li>
-        <li><a href="#cone">Bellman 可行奖励锥</a></li>
-        <li><a href="#conformal">Conformal 校准与覆盖</a></li>
-        <li><a href="#robust">相对鲁棒决策 LP</a></li>
-        <li><a href="#limits">四种“保证”不要混淆</a></li>
-        <li><a href="#experiments">实验说明什么？</a></li>
-        <li><a href="#novelty">创新、已有工作与局限</a></li>
-        <li><a href="#cheatsheet">公式速查表</a></li>
+  <nav aria-label="页面目录">
+    <strong>阅读路线</strong>
+    <ol>
+      <li><a href="#roadmap">五分钟速览</a></li>
+      <li><a href="#problem">问题：我们只看到策略，却想理解奖励</a></li>
+      <li><a href="#occupancy">占用测度：把无限时间的 MDP 变成线性代数</a></li>
+      <li><a href="#nonidentification">为什么行为不能唯一识别奖励？</a></li>
+      <li><a href="#geometry">占用跨度半范数</a></li>
+      <li><a href="#cone">Bellman 可行奖励锥</a></li>
+      <li><a href="#conformal">Conformal 校准：有限样本保证什么？</a></li>
+      <li><a href="#robust">相对鲁棒决策</a></li>
+      <li><a href="#limits">四层逻辑必须逐层经过</a></li>
+      <li><a href="#experiments">实验究竟说明什么？</a></li>
+      <li><a href="#novelty">创新在哪里？哪些不是新的？</a></li>
+      <li><a href="#cheatsheet">一页公式速查</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section id="roadmap">
+      <h2><span class="num">1</span>五分钟速览</h2>
+      <div class="one-line">论文的核心：先在行为可识别的射影几何中校准“中心到逆可行锥的距离”，再用逆 fiber 宽度把相交半径扩成包含半径，最后才做鲁棒处方。</div>
+
+      <p class="lead">逆强化学习（IRL）观察的是行为，却试图恢复奖励。问题在于，同一个行为通常可以由很多奖励解释。因此，可信的不确定性说明必须先回答：<strong>这个奖励差会不会改变策略之间的价值比较？</strong></p>
+
+      <ol class="pipeline" aria-label="方法流程：四步">
+        <li><span class="stage">第一步</span>训练集<br>拟合中心 \(\bar\theta\)</li>
+        <li><span class="stage">第二步</span>校准集<br>计算距离分数 \(s_k\)</li>
+        <li><span class="stage">第三步</span>Conformal 分位数<br>得到 \(q_\gamma\)</li>
+        <li><span class="stage">第四步</span>部署<br>求相对鲁棒策略</li>
       </ol>
-    </nav>
 
-    <main>
-      <section id="roadmap">
-        <h2><span class="num">0</span>五分钟速览</h2>
-        <div class="one-line">论文的核心：先在行为可识别的射影几何中校准“中心到逆可行锥的距离”，再用逆 fiber 宽度把相交半径扩成包含半径，最后才做鲁棒处方。</div>
-        <p class="lead">逆强化学习（IRL）观察的是行为，却试图恢复奖励。问题在于，同一个行为通常可以由很多奖励解释。因此，可信的不确定性说明必须先回答：<strong>这个奖励差会不会改变策略之间的价值比较？</strong></p>
-        <div class="pipeline">
-          <div>训练集<br>拟合中心 \(\bar\theta\)</div>
-          <div>校准集<br>计算距离分数 \(s_k\)</div>
-          <div>Conformal 分位数<br>得到 \(q_\gamma\)</div>
-          <div>部署<br>求相对鲁棒策略</div>
-        </div>
-        <h3>本文建立的逻辑链</h3>
-        <ol>
-          <li>用半范数 \(\Dnorm{\cdot}\) 忽略给所有策略添加同一常数的方向，再用单位跨度归一化消除正比例尺度。</li>
-          <li>把“策略 \(\pi\) 在哪些奖励下最优”写成 Bellman 线性不等式组成的锥 \(K(\pi)\)。</li>
-          <li>以点估计到该锥的距离作为 conformal 分数，得到新演示者可行奖励锥的有限样本相交覆盖 \(q_\gamma\)。</li>
-          <li>用已认证的归一化逆 fiber 直径 \(\eta\)，把相交半径扩成潜在奖励包含半径 \(R\)。</li>
-          <li>在半径 \(R\) 上求参考相对鲁棒策略；若 \(R\ge1\)，框架明确报告保证退化并返回参考策略。</li>
-        </ol>
-        <div class="callout warning">
-          <div class="title">先消除一个常见误解</div>
-          <p>仅靠 conformal 排名，能直接证明的是可行锥相交。若再给出可信的 fiber 宽度 \(\eta\)，才可升级为“以至少 \(\gamma\) 的概率不差于指定参考策略”。它仍不等于恢复唯一真实奖励，也不等于优于点估计策略。</p>
-        </div>
-      </section>
+      <h3>1.1 本文建立的逻辑链</h3>
+      <ol>
+        <li>用半范数 \(\Dnorm{\cdot}\) 忽略给所有策略添加同一常数的方向，再用单位跨度归一化消除正比例尺度。</li>
+        <li>把“策略 \(\pi\) 在哪些奖励下最优”写成 Bellman 线性不等式组成的锥 \(K(\pi)\)。</li>
+        <li>以点估计到该锥的距离作为 conformal 分数，得到新演示者可行奖励锥的有限样本<em>相交</em>覆盖 \(q_\gamma\)。</li>
+        <li>用已认证的归一化逆 fiber 直径 \(\eta\)，把相交半径扩成潜在奖励<em>包含</em>半径 \(R\)。</li>
+        <li>在半径 \(R\) 上求参考相对鲁棒策略；若 \(R\ge1\)，框架明确报告保证退化：最优相对鲁棒值为零，由参考占用取到（\(R>1\) 时任何最优解都与参考特征等价）。</li>
+      </ol>
 
-      <section id="problem">
-        <h2><span class="num">1</span>问题：我们只看到策略，却想理解奖励</h2>
-        <h3>1.1 共享的有限 MDP</h3>
-        <div class="math-card">\[M=(S,A,P,\rho_0,\beta,\phi).\]</div>
-        <table>
-          <thead><tr><th>符号</th><th>含义</th></tr></thead>
-          <tbody>
-            <tr><td>\(S,A\)</td><td>有限状态集合与动作集合。</td></tr>
-            <tr><td>\(P(s'|s,a)\)</td><td>已知状态转移概率。</td></tr>
-            <tr><td>\(\rho_0\)</td><td>初始状态分布。</td></tr>
-            <tr><td>\(\beta\in[0,1)\)</td><td>折扣因子。</td></tr>
-            <tr><td>\(\phi(s,a)\in\R^d\)</td><td>已知状态—动作特征。</td></tr>
-            <tr><td>\(\theta\in\R^d\)</td><td>奖励权重，且 \(r_\theta(s,a)=\phi(s,a)^\top\theta\)。</td></tr>
-          </tbody>
-        </table>
-        <p>第 \(k\) 位演示者有感知奖励 \(\hat\theta_k\)，并给出最优确定性策略 \(\pi_k=\pi^*(\hat\theta_k)\)。统计单位是<strong>演示者</strong>，不是轨迹中的每个时间步。</p>
-        <div class="callout limit">
-          <div class="title">当前观测假设</div>
-          <p>策略被完整、无误地观察；演示者在自己的奖励下精确最优；所有人共享同一个已知表格型 MDP。有限轨迹、近似最优行为、函数逼近和 MDP 偏移尚未被理论覆盖。</p>
-        </div>
-        <h3>1.2 点估计为什么不够？</h3>
-        <p>普通 IRL 从训练演示者拟合单个 \(\bar\theta\)，再部署 \(\pi_{\bar\theta}\)。这把“很多奖励都能解释行为”的事实压成了一个点。CP-IRL 转而用另一组校准演示者学习一个有有限样本含义的集合。</p>
-        <div class="callout intuition">
-          <div class="title">类比：只看到处方</div>
-          <p>只看到医生处方、看不到完整诊断依据时，许多不同判断都可能导向同一处方。“处方与某判断兼容”不等于“恢复了医生心中的唯一判断”。策略与奖励也是这种关系。</p>
-        </div>
-      </section>
+      <div class="callout warning">
+        <div class="title">先消除一个常见误解</div>
+        <p>仅靠 conformal 排名，能直接证明的是可行锥<strong>相交</strong>。若再给出可信的 fiber 宽度 \(\eta\)，才可升级为“以至少 \(\gamma\) 的概率不差于指定参考策略”。它仍不等于恢复唯一真实奖励，也不等于优于点估计策略。</p>
+      </div>
+    </section>
 
-      <section id="occupancy">
-        <h2><span class="num">2</span>占用测度：把无限时间的 MDP 变成线性代数</h2>
-        <h3>2.1 定义</h3>
-        <div class="math-card">
-          \[
-          \mu_\pi(s,a):=(1-\beta)\E_\pi\!\left[\sum_{t=0}^{\infty}\beta^t
-          \mathbf1\{s_t=s,a_t=a\}\right].
-          \]
-        </div>
-        <p>它可理解为按折扣随机抽一个时间点后，智能体出现在 \((s,a)\) 的概率；因此 \(\sum_{s,a}\mu_\pi(s,a)=1\)。</p>
-        <h3>2.2 所有可行占用测度形成多面体</h3>
-        <div class="math-card">
-          \[
-          \sum_a\mu(s',a)=(1-\beta)\rho_0(s')
-          +\beta\sum_{s,a}P(s'|s,a)\mu(s,a),\qquad \mu\ge0.
-          \]
-        </div>
-        <p>满足流量守恒的所有 \(\mu\) 构成凸多面体 \(\M(P)\)。动态策略空间因此被改写成线性约束集合。</p>
-        <h3>2.3 回报也是线性的</h3>
-        <div class="math-card">\[V_\theta(\mu)=\frac{\theta^\top\Phi^\top\mu}{1-\beta}.\]</div>
-        <p>\(\Phi^\top\mu\) 是策略的期望特征向量，所以最优策略可由线性规划 \(\max_{\mu\in\M(P)}\theta^\top\Phi^\top\mu\) 求得。</p>
-        <div class="callout intuition">
-          <div class="title">本节只需记住</div>
-          <p>\(\mu\) 把无限长轨迹压缩成访问频率；\(\Phi^\top\mu\) 再把它压缩成期望特征；策略价值就是奖励权重与期望特征的内积。</p>
-        </div>
-      </section>
+    <section id="problem">
+      <h2><span class="num">2</span>问题：我们只看到策略，却想理解奖励</h2>
+      <h3>2.1 共享的有限 MDP</h3>
+      <div class="math-card">\[M=(S,A,P,\rho_0,\beta,\phi).\]</div>
+      <table>
+        <caption>第 2.1 节的符号表。全文用 \(M\) 表示 MDP，用 \(\mathcal M(P)\) 表示占用测度多面体（第 3.2 节），两者不要混淆。</caption>
+        <thead><tr><th scope="col">符号</th><th scope="col">含义</th></tr></thead>
+        <tbody>
+          <tr><td>\(S,A\)</td><td>有限状态集合与动作集合。</td></tr>
+          <tr><td>\(P(s'|s,a)\)</td><td>已知状态转移概率。</td></tr>
+          <tr><td>\(\rho_0\)</td><td>初始状态分布。</td></tr>
+          <tr><td>\(\beta\in[0,1)\)</td><td>折扣因子。</td></tr>
+          <tr><td>\(\phi(s,a)\in\R^d\)</td><td>已知状态—动作特征。</td></tr>
+          <tr><td>\(\theta\in\R^d\)</td><td>奖励权重，且 \(r_\theta(s,a)=\phi(s,a)^\top\theta\)。</td></tr>
+        </tbody>
+      </table>
+      <p>第 \(k\) 位演示者有感知奖励 \(\hat\theta_k\)，并给出最优确定性策略 \(\pi_k=\pi^*(\hat\theta_k)\)。统计单位是<strong>演示者</strong>，不是轨迹中的每个时间步。</p>
 
-      <section id="nonidentification">
-        <h2><span class="num">3</span>为什么行为不能唯一识别奖励？</h2>
-        <h3>3.1 加性不可识别方向</h3>
-        <p>若某个方向 \(v\) 对所有可行占用测度都给出同一个值，</p>
-        <div class="math-card">\[V_v(\mu)=\text{常数},\qquad\forall\mu\in\M(P),\]</div>
-        <p>那么把 \(v\) 加到奖励上，只会给每个策略价值加同一常数，不改变策略排序。潜势奖励塑形、不可达状态上的某些奖励都可能产生这种方向。</p>
-        <h3>3.2 正比例缩放也不可识别</h3>
-        <p>对任意 \(c>0\)，\(\theta\) 和 \(c\theta\) 诱导相同的策略排序。因此修订后的方法先令 \(\theta^\circ=\theta/\Dnorm{\theta}\)，只比较单位跨度代表元。代码和公式都不需要显式构造商空间，但零距离关系已经隐式完成了识别。</p>
-        <div class="callout warning">
-          <div class="title">两种“行为不变”</div>
-          <ul>
-            <li><strong>加性空方向：</strong>给所有策略加同一常数；本文把它们压成零。</li>
-            <li><strong>正比例缩放：</strong>把所有价值差乘同一个正数；单位跨度归一化把它压成同一条正射线。</li>
-          </ul>
-        </div>
-        <h3>3.3 两策略小例子</h3>
-        <p>若只有两个可行期望特征 \(z_1=(1,0)\)、\(z_2=(0,1)\)，且暂取 \(\beta=0\)，则奖励 \(v=(v_1,v_2)\) 真正影响选择的只有 \(v_1-v_2\)：</p>
-        <div class="math-card">\[\max(v_1,v_2)-\min(v_1,v_2)=|v_1-v_2|.\]</div>
-        <p>加上 \(c(1,1)\) 会让两策略价值同时增加 \(c\)，却不改变差值。这就是下一节半范数的最小模型。</p>
-      </section>
+      <div class="callout limit">
+        <div class="title">当前观测假设</div>
+        <p>策略被完整、无误地观察；演示者在自己的奖励下精确最优；所有人共享同一个已知表格型 MDP。有限轨迹、近似最优行为、函数逼近和 MDP 偏移尚未被理论覆盖。</p>
+      </div>
 
-      <section id="geometry">
-        <h2><span class="num">4</span>占用跨度半范数：只度量会改变策略比较的差异</h2>
-        <h3>4.1 定义</h3>
-        <div class="math-card"><div class="label">占用跨度半范数</div>
-          \[\Dnorm{v}:=\max_{\mu\in\M(P)}V_v(\mu)-\min_{\mu\in\M(P)}V_v(\mu).\]
-        </div>
-        <p>它问：在奖励差 \(v\) 下，最偏好与最不偏好的策略之间最多能拉开多大价值差。</p>
-        <h3>4.2 为什么是“半范数”？</h3>
-        <p>它满足正齐次性和三角不等式，但可能有非零 \(v\) 满足</p>
-        <div class="math-card">\[\Dnorm{v}=0\iff V_v(\mu)\text{ 在所有 }\mu\in\M(P)\text{ 上相同}.\]</div>
-        <p>这正是设计目标：行为无法区分的加性方向不应消耗不确定性半径。</p>
-        <h3>4.3 常数 1 的 regret 上界</h3>
-        <div class="math-card">
-          \[
-          \operatorname{Reg}_{\theta}(\pi_{\theta'})
-          :=V_\theta(\pi_\theta^*)-V_\theta(\pi_{\theta'})
-          \le\Dnorm{\theta-\theta'}.
-          \]
-        </div>
-        <details>
-          <summary>展开看三行证明</summary>
-          <div>
+      <h3>2.2 点估计为什么不够？</h3>
+      <p>普通 IRL 从训练演示者拟合单个 \(\bar\theta\)，再部署 \(\pi_{\bar\theta}\)。这把“很多奖励都能解释行为”的事实压成了一个点。CP-IRL 转而用另一组校准演示者学习一个有有限样本含义的集合。</p>
+
+      <div class="callout intuition">
+        <div class="title">类比：只看到处方</div>
+        <p>只看到医生处方、看不到完整诊断依据时，许多不同判断都可能导向同一处方。“处方与某判断兼容”不等于“恢复了医生心中的唯一判断”。策略与奖励也是这种关系。</p>
+      </div>
+    </section>
+
+    <section id="occupancy">
+      <h2><span class="num">3</span>占用测度：把无限时间的 MDP 变成线性代数</h2>
+      <h3>3.1 定义</h3>
+      <div class="math-card">
+        \[
+        \mu_\pi(s,a):=(1-\beta)\E_\pi\!\left[\sum_{t=0}^{\infty}\beta^t
+        \mathbf1\{s_t=s,a_t=a\}\right].
+        \]
+      </div>
+      <p>它可理解为按折扣随机抽一个时间点后，智能体出现在 \((s,a)\) 的概率；因此 \(\sum_{s,a}\mu_\pi(s,a)=1\)。</p>
+
+      <h3>3.2 所有可行占用测度形成多面体</h3>
+      <div class="math-card">
+        \[
+        \sum_a\mu(s',a)=(1-\beta)\rho_0(s')
+        +\beta\sum_{s,a}P(s'|s,a)\mu(s,a),\qquad \mu\ge0.
+        \]
+      </div>
+      <p>满足流量守恒的所有 \(\mu\) 构成凸多面体 \(\M(P)\)。动态策略空间因此被改写成线性约束集合。</p>
+
+      <h3>3.3 回报也是线性的</h3>
+      <div class="math-card">\[V_\theta(\mu)=\frac{\theta^\top\Phi^\top\mu}{1-\beta}.\]</div>
+      <p>\(\Phi^\top\mu\) 是策略的期望特征向量，所以最优策略可由线性规划 \(\max_{\mu\in\M(P)}\theta^\top\Phi^\top\mu\) 求得。</p>
+      <p>全文约定：\(V_\theta(\mu)\) 的自变量始终是<strong>占用测度</strong>；写策略时一律写成 \(V_\theta(\mu_\pi)\)，不留歧义。</p>
+
+      <div class="callout intuition">
+        <div class="title">本节只需记住</div>
+        <p>\(\mu\) 把无限长轨迹压缩成访问频率；\(\Phi^\top\mu\) 再把它压缩成期望特征；策略价值就是奖励权重与期望特征的内积。</p>
+      </div>
+    </section>
+
+    <section id="nonidentification">
+      <h2><span class="num">4</span>为什么行为不能唯一识别奖励？</h2>
+      <h3>4.1 加性不可识别方向</h3>
+      <p>若某个方向 \(v\) 对所有可行占用测度都给出同一个值，</p>
+      <div class="math-card">\[V_v(\mu)=\text{常数},\qquad\forall\mu\in\M(P),\]</div>
+      <p>那么把 \(v\) 加到奖励上，只会给每个策略价值加同一常数，不改变策略排序。潜势奖励塑形、不可达状态上的某些奖励都可能产生这种方向。</p>
+
+      <h3>4.2 正比例缩放也不可识别</h3>
+      <p>对任意 \(c>0\)，\(\theta\) 和 \(c\theta\) 诱导相同的策略排序。因此本文先令 \(\theta^\circ=\theta/\Dnorm{\theta}\)，只比较单位跨度代表元。代码和公式都不需要显式构造商空间，但零距离关系已经隐式完成了识别。</p>
+
+      <div class="callout warning">
+        <div class="title">两种“行为不变”</div>
+        <ul>
+          <li><strong>加性空方向：</strong>给所有策略加同一常数；本文把它们压成零。</li>
+          <li><strong>正比例缩放：</strong>把所有价值差乘同一个正数；单位跨度归一化把它压成同一条正射线。</li>
+        </ul>
+      </div>
+
+      <h3>4.3 两策略小例子</h3>
+      <p>若只有两个可行期望特征 \(z_1=(1,0)\)、\(z_2=(0,1)\)，且暂取 \(\beta=0\)，则奖励 \(v=(v_1,v_2)\) 真正影响选择的只有 \(v_1-v_2\)：</p>
+      <div class="math-card">\[\max(v_1,v_2)-\min(v_1,v_2)=|v_1-v_2|.\]</div>
+      <p>加上 \(c(1,1)\) 会让两策略价值同时增加 \(c\)，却不改变差值。这就是下一节半范数的最小模型。</p>
+    </section>
+
+    <section id="geometry">
+      <h2><span class="num">5</span>占用跨度半范数：只度量会改变策略比较的差异</h2>
+      <h3>5.1 定义</h3>
+      <div class="math-card">
+        <div class="label">占用跨度半范数</div>
+        \[\Dnorm{v}:=\max_{\mu\in\M(P)}V_v(\mu)-\min_{\mu\in\M(P)}V_v(\mu).\]
+      </div>
+      <p>它问：在奖励差 \(v\) 下，最偏好与最不偏好的策略之间最多能拉开多大价值差。</p>
+      <p>把它写成支持函数会更方便。定义特征差分体</p>
+      <div class="math-card">
+        \[\DF:=\frac{\Phi^\top(\M(P)-\M(P))}{1-\beta},\qquad
+        \Dnorm{v}=h_{\DF}(v).\]
+      </div>
+      <p>后面第 8 节的鲁棒惩罚用的就是同一个 \(\DF\) 的极对偶规范函数，所以校准和部署不是两个任意拼接的模块。除以 \(1-\beta\) 是必需的：它保证 \(\Dnorm{v}\) 就是下面那个<strong>真实价值差</strong>，而不是被折扣因子缩放过的东西。</p>
+
+      <h3>5.2 为什么是“半范数”？</h3>
+      <p>它满足正齐次性和三角不等式，但可能有非零 \(v\) 满足</p>
+      <div class="math-card">\[\Dnorm{v}=0\iff V_v(\mu)\text{ 在所有 }\mu\in\M(P)\text{ 上相同}.\]</div>
+      <p>这正是设计目标：行为无法区分的加性方向不应消耗不确定性半径。</p>
+
+      <h3>5.3 常数 1 的 regret 上界</h3>
+      <div class="math-card">
+        \[
+        \operatorname{Reg}_{\theta}(\pi_{\theta'})
+        :=V_\theta(\mu_{\pi^*_\theta})-V_\theta(\mu_{\pi_{\theta'}})
+        \le\Dnorm{\theta-\theta'}.
+        \]
+      </div>
+      <details>
+        <summary>展开看证明</summary>
+        <div>
+          <div class="math-card">
             \[
             \begin{aligned}
             \operatorname{Reg}_{\theta}(\pi_{\theta'})
-            &amp;=V_{\theta-\theta'}(\pi_\theta^*)-V_{\theta-\theta'}(\pi_{\theta'})\\
-            &amp;\quad+V_{\theta'}(\pi_\theta^*)-V_{\theta'}(\pi_{\theta'}).
+            &amp;=V_{\theta-\theta'}(\mu_{\pi^*_\theta})
+              -V_{\theta-\theta'}(\mu_{\pi_{\theta'}})\\
+            &amp;\quad+V_{\theta'}(\mu_{\pi^*_\theta})
+              -V_{\theta'}(\mu_{\pi_{\theta'}}).
             \end{aligned}
             \]
-            <p>最后一项不大于零，因为 \(\pi_{\theta'}\) 在 \(\theta'\) 下最优；前两项不超过 \(V_{\theta-\theta'}\) 在所有可行策略上的最大值减最小值。</p>
           </div>
-        </details>
-        <h3>4.4 为什么它对特征重参数化不敏感？</h3>
-        <p>令 \(\tilde\phi=A\phi\)、\(\tilde\theta=A^{-\top}\theta\)，其中 \(A\) 可逆，则</p>
-        <div class="math-card">\[\tilde\phi(s,a)^\top\tilde\theta=\phi(s,a)^\top\theta.\]</div>
-        <p>奖励函数和所有策略价值都不变，因此占用跨度不变。普通欧氏角度则会随坐标轴伸缩而改变。</p>
-        <h3>4.5 射影跨度距离</h3>
-        <div class="math-card">
-          \[
-          \theta^\circ=\frac{\theta}{\Dnorm{\theta}},\qquad
-          d_\circ(\theta,\theta')=\Dnorm{\theta^\circ-\theta'^\circ}\in[0,2].
-          \]
+          <p>第二行的差值不大于零，因为 \(\pi_{\theta'}\) 在 \(\theta'\) 下最优；第一行不超过 \(V_{\theta-\theta'}\) 在所有可行占用测度上的最大值减最小值。</p>
         </div>
-        <p>对非空奖励，\(d_\circ(\theta,\theta')=0\) 当且仅当 \(\theta'=c\theta+a\)，其中 \(c>0\)、\(a\) 是加性空方向。它同时忽略两种行为不变变换，并满足归一化 regret 上界</p>
-        <div class="math-card">
-          \[\frac{\operatorname{Reg}_\theta(\pi_{\theta'})}{\Dnorm{\theta}}\le d_\circ(\theta,\theta').\]
-        </div>
-        <div class="callout prior">
-          <div class="title">与 STARC 的关系</div>
-          <p>占用跨度是 STARC 一类行为相关几何的规范基础，单位跨度给出正尺度的射影化。本文的新意不是重新发明奖励距离，而是把这套几何同时用于 Bellman 逆 fiber 校准和下游鲁棒惩罚。</p>
-        </div>
-      </section>
+      </details>
+      <p>常数就是 \(1\)，没有 Cauchy–Schwarz 的余量，也没有特征范数的 Lipschitz 因子——因为半范数就是按它要界住的那个价值差定义的。</p>
 
-      <section id="cone">
-        <h2><span class="num">5</span>Bellman 可行奖励锥：哪些奖励能解释观测策略？</h2>
-        <h3>5.1 从“策略最优”到线性不等式</h3>
-        <div class="math-card">\[Q^\pi_\theta(s,a)\le Q^\pi_\theta(s,\pi(s)),\qquad\forall s,a.\]</div>
-        <h3>5.2 Bellman 预解式</h3>
-        <p>固定 \(\pi\)，令</p>
-        <div class="math-card">
-          \[
-          W_\pi=(I-\beta P_\pi)^{-1}\Phi_\pi,\qquad
-          V^\pi_\theta=W_\pi\theta,
-          \]
-          \[
-          Q^\pi_\theta(s,a)=\Psi_\pi(s,a)^\top\theta,\quad
-          \Psi_\pi(s,a)=\phi(s,a)+\beta P(s,a,\cdot)W_\pi.
-          \]
+      <h3>5.4 最小性：满足 regret 上界的逐点最小半范数</h3>
+      <div class="callout prior">
+        <div class="title">最小性命题</div>
+        <p>设 \(N\) 是<strong>任意</strong>对所有 \(\theta,\theta'\) 满足 \(\operatorname{Reg}_\theta(\pi_{\theta'})\le N(\theta-\theta')\) 的半范数，则对每个 \(v\) 都有 \(N(v)\ge\Dnorm{v}\)。</p>
+      </div>
+      <details>
+        <summary>展开看两行证明</summary>
+        <div>
+          <p>取 \(\theta=v\)、\(\theta'=-\delta v\)，其中 \(\delta>0\)。任何在 \(\theta'\) 下最优的策略都最大化 \(V_{-\delta v}\)，因而最小化 \(V_v\)；而 \(\mu^*_\theta\) 最大化 \(V_v\)。于是</p>
+          <div class="math-card">\[\operatorname{Reg}_\theta(\pi_{\theta'})=\max_\mu V_v-\min_\mu V_v=\Dnorm{v}.\]</div>
+          <p>把 \(\theta-\theta'=(1+\delta)v\) 代入假设并用 \(N\) 的正齐次性，得 \(\Dnorm{v}\le (1+\delta)N(v)\)。令 \(\delta\downarrow0\) 即得。</p>
         </div>
-        <p>于是解释策略 \(\pi\) 的奖励构成多面锥</p>
-        <div class="math-card">
-          \[
-          K(\pi)=\{\theta:
-          \Psi_\pi(s,a)^\top\theta\le
-          \Psi_\pi(s,\pi(s))^\top\theta,\ \forall s,a\}.
-          \]
-        </div>
-        <h3>5.3 必须区分的两个集合</h3>
-        <table>
-          <thead><tr><th>集合</th><th>用途</th><th>计算性质</th></tr></thead>
-          <tbody>
-            <tr><td>\(K(\pi)\)</td><td>决策感知距离分数</td><td>无界多面锥；配合跨度上图得到 LP。</td></tr>
-            <tr><td>\(\hat\Theta_2(\pi)=K(\pi)\cap\{\|\theta\|_2\le1\}\)</td><td>角度 CIO 基线</td><td>含二阶锥约束，不能称为纯 LP。</td></tr>
-          </tbody>
-        </table>
-        <div class="callout warning">
-          <div class="title">\(K(\pi)\) 不是奖励等价类</div>
-          <p>正缩放和加性空方向是所有行为都具有的结构对称性；但同一个 \(K(\pi)\) 内仍可包含会对其他策略作出不同排序的奖励。它是逆问题的 fiber（这里是法锥），其剩余宽度正是第二阶段必须控制的识别误差。</p>
-        </div>
-      </section>
+      </details>
+      <div class="callout warning">
+        <div class="title">但“最小”只针对一个判据，请勿过度使用</div>
+        <p>最小性是在<strong>最坏情况 regret</strong>这一个判据下成立的。判据换一个，其他几何就未必被排除，只是<em>不同</em>而不是<em>错</em>。投稿版正文里“这是唯一的选择，因此可以说其他几何是错的”一句超出了命题本身，camera-ready 已改为“逐点最小的选择”（见 <a href="paper/ERRATA.md">勘误</a>）。</p>
+      </div>
 
-      <section id="conformal">
-        <h2><span class="num">6</span>Conformal 校准：有限样本保证什么？</h2>
-        <h3>6.1 距离到可行锥的分数</h3>
-        <div class="math-card">
-          \[\bar\theta^\circ=\bar\theta/\Dnorm{\bar\theta},\qquad
-          s_k:=\min_{\theta\in K(\pi_k)}\Dnorm{\theta-\bar\theta^\circ}.\]
-        </div>
-        <p>\(s_k\) 小，表示演示者的可行奖励锥离中心近；\(s_k\) 大，表示集合必须扩得更宽才能碰到一种兼容解释。</p>
-        <p>因为零奖励属于每个锥，\(0\le s_k\le1\)。这个分数无量纲，对中心奖励的正缩放、加性空方向以及可逆特征重参数化都不变；它仍是原来的线性规划。</p>
-        <h3>6.2 校准集合与精确等价</h3>
-        <div class="math-card">
-          \[
-          B_q:=\{\theta:\Dnorm{\theta-\bar\theta^\circ}\le q\},
-          \]
-          \[
-          s_k\le q\quad\Longleftrightarrow\quad K(\pi_k)\cap B_q\ne\varnothing.
-          \]
-        </div>
-        <p>分数事件不是被勉强“解释成”集合覆盖；它由最小距离定义直接等价于集合相交。</p>
-        <h3>6.3 分位数与有限样本保证</h3>
-        <div class="callout">
-          <div class="title">这一步是现成的，不是本工作的贡献</div>
-          <p>下面的分位数取法和覆盖率论证就是 split conformal prediction（Vovk et al. 2005），也正是 CIO 的 Theorem 1–2 所用的同一套论证：CIO 取 \(\{c_k\}\) 的第 \(\lceil\gamma(N_{\mathrm{val}}+1)\rceil\) 大值，我们取 \(\{s_k\}\) 的第 \(\tau\) 小值，两者只差一个单调变换。顺序决策的结构没有改变这个论证的任何一步。真正需要设计的是它两侧的东西：<strong>校准的是哪一个几何下的距离</strong>（§6.1，见 §6.4 的对比）和<strong>校准出来的事件到底能推出什么</strong>（§6.4–6.5：相交 ≠ 包含）。</p>
-        </div>
-        <p>有 \(n=N_{\mathrm{cal}}\) 个校准分数。令 \(\tau=\lceil\gamma(n+1)\rceil\)，取第 \(\tau\) 小分数为 \(q_\gamma\)；若 \(\tau=n+1\)，使用 \(+\infty\) 哨兵。</p>
-        <div class="math-card">
-          \[
-          \P[K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\varnothing]\ge\gamma.
-          \]
-        </div>
-        <details>
-          <summary>为什么交换性足够？</summary>
-          <div>
-            <p>训练集固定后，\(\bar\theta\) 固定。校准演示者与新演示者独立同分布，所以 \(s_1,\ldots,s_n,s_{\mathrm{new}}\) 可交换；新分数的秩对称。选择 \(\lceil\gamma(n+1)\rceil\) 分位数便得到至少 \(\gamma\) 的边际覆盖。</p>
-            <p>“边际”表示概率平均了训练/校准样本和新演示者，并不保证每个已拟合集合或每个子群体都有条件覆盖。</p>
-          </div>
-        </details>
-        <h3>6.4 三种构造的事件并不完全相同</h3>
-        <table>
-          <thead><tr><th>构造</th><th>校准事件</th><th>是否等于可行集相交？</th></tr></thead>
-          <tbody>
-            <tr><td>角度 CIO</td><td>归一化可行截面与球冠相交</td><td>是。</td></tr>
-            <tr><td>Value gap</td><td>\(V_{\bar\theta}(\mu^*_{\bar\theta})-V_{\bar\theta}(\mu_{\pi_k})\le q\)</td><td><strong>否。</strong>把 gap 阈值换成欧氏半径逆用了单向 Lipschitz 上界。</td></tr>
-            <tr><td>决策感知跨度</td><td>\(s_k\le q\)</td><td>是，由最小距离精确等价。</td></tr>
-          </tbody>
-        </table>
-        <div class="callout limit">
-          <div class="title">相交不等于包含</div>
-          <p>\(K(\pi_{\mathrm{new}})\cap B_q\ne\varnothing\) 只说明存在某个能解释新策略的奖励。它不说明演示者真正使用的 \(\hat\theta_{\mathrm{new}}^\circ\) 位于 \(B_q\) 中。</p>
-        </div>
-        <h3>6.5 第二阶段：用 fiber 宽度把相交变成包含</h3>
-        <p>定义单位跨度逆 fiber</p>
-        <div class="math-card">
-          \[F^\circ(\pi)=\{\theta\in K(\pi):\Dnorm{\theta}=1\}.\]
-        </div>
-        <p>若有外部知识能够认证每个部署 fiber 的射影直径不超过 \(\eta\)，则在 \(q_\gamma&lt;1\) 时，LP 分数给出</p>
-        <div class="math-card">
-          \[R=\min\{2,\,2q_\gamma+\eta\},\qquad
-          \P[\Dnorm{\hat\theta_{\mathrm{new}}^\circ-\bar\theta^\circ}\le R]\ge\gamma.\]
-        </div>
-        <p>因子 \(2q_\gamma\) 来自两步：先找到离中心不超过 \(q_\gamma\) 的锥内见证，再把见证归一化到单位跨度，至多再移动 \(q_\gamma\)。若 \(q_\gamma\ge1\)，见证可能是零奖励，只能退回通用半径 \(R=2\)。</p>
-        <div class="callout warning">
-          <div class="title">\(\eta\) 不能靠同一条 conformal 定理凭空得到</div>
-          <p>它需要侧信息、多环境观测、主动比较或其他识别结构。完全没有额外信息时，唯一通用认证是 \(\eta=2\)，虽然正确，却通常没有处方价值。</p>
-        </div>
-      </section>
+      <h3>5.5 为什么它对特征重参数化不敏感？</h3>
+      <p>令 \(\tilde\phi=A\phi\)、\(\tilde\theta=A^{-\top}\theta\)，其中 \(A\) 可逆，则</p>
+      <div class="math-card">\[\tilde\phi(s,a)^\top\tilde\theta=\phi(s,a)^\top\theta.\]</div>
+      <p>奖励函数和所有策略价值都不变，因此占用跨度不变。普通欧氏角度则会随坐标轴伸缩而改变。</p>
 
-      <section id="robust">
-        <h2><span class="num">7</span>相对鲁棒决策：为什么需要参考占用测度？</h2>
-        <h3>7.1 绝对最坏情况可能无界</h3>
-        <p>半范数球沿加性空方向无界。直接求</p>
-        <div class="math-card">\[\max_{\mu\in\M(P)}\min_{\theta\in B_R}V_\theta(\mu)\]</div>
-        <p>时，对手可能沿空方向把所有策略的绝对价值一起推向负无穷。这不影响策略比较，却会破坏绝对值目标。</p>
-        <h3>7.2 改为相对参考策略的优势</h3>
-        <div class="math-card">
-          \[
-          \max_{\mu\in\M(P)}\min_{\theta\in B_R}
-          [V_\theta(\mu)-V_\theta(\mu_{\mathrm{ref}})].
-          \]
-        </div>
-        <p>给所有策略加同一常数的方向会在差值中抵消。实验以校准演示者的平均占用测度为参考。</p>
-        <h3>7.3 支持函数—规范函数对偶给出 LP</h3>
-        <p>令 \(x=\Phi^\top(\mu-\mu_{\mathrm{ref}})\)，\(\mathcal D_F=\Phi^\top(\M(P)-\M(P))\)，则</p>
-        <div class="math-card">
-          \[
-          \min_{\Dnorm{\delta}\le R}
-          \frac{(\bar\theta^\circ+\delta)^\top x}{1-\beta}
-          =\frac{(\bar\theta^\circ)^\top x}{1-\beta}-R\,\gamma_{\mathcal D_F}(x).
-          \]
-        </div>
-        <p>\(\gamma_{\mathcal D_F}\) 是 Minkowski 规范函数，可由两份缩放占用流变量线性表示。最重要的是：校准和鲁棒化都来自同一个占用差分体 \(\mathcal D_F\)。前者使用它的支持函数，后者使用其极对偶规范函数，所以两部分不是随意拼接。</p>
-        <h3>7.4 由包含得到相对参考的安全性</h3>
-        <p>参考占用本身的最坏相对优势恒为零，所以鲁棒最优解的最坏优势至少为零。在潜在归一化奖励落入 (B_R) 的事件上，便有</p>
-        <div class="math-card">
-          \[
-          V_{\hat\theta_{\mathrm{new}}}(\mu_R)\ge
-          V_{\hat\theta_{\mathrm{new}}}(\mu_{\mathrm{ref}}),
-          \qquad\text{概率至少为 }\gamma.
-          \]
-        </div>
-        <h3>7.5 尖锐退化边界：\(R\ge1\)</h3>
-        <p>单位跨度中心对任意候选占用的中心优势不超过规范惩罚，因此鲁棒目标至多为</p>
-        <div class="math-card">\[(1-R)\gamma_{\mathcal D_F}(x).\]</div>
-        <p>当 \(R\ge1\) 时它对所有候选都不大于零，而参考占用达到零；所以算法只能返回参考策略或与它特征等价的并列解。要得到非平凡安全改善，LP 桥至少要求 \(2q_\gamma+\eta&lt;1\)。</p>
-        <div class="callout warning">
-          <div class="title">参考策略不是 conformal 定理选出来的</div>
-          <p>\(\mu_{\mathrm{ref}}\) 是建模选择。若用点估计自己的最优占用测度作参考，最优相对优势会退化为零；不同参考也可能产生不同策略，因此部署前需要敏感性分析。</p>
-        </div>
-      </section>
+      <h3>5.6 射影跨度距离</h3>
+      <div class="math-card">
+        \[
+        \theta^\circ=\frac{\theta}{\Dnorm{\theta}},\qquad
+        d_\circ(\theta,\theta')=\Dnorm{\theta^\circ-\theta'^\circ}\in[0,2].
+        \]
+      </div>
+      <p>对行为非零（\(\Dnorm{\theta}>0\)）的奖励，\(d_\circ(\theta,\theta')=0\) 当且仅当 \(\theta'=c\theta+a\)，其中 \(c>0\)、\(a\) 是加性空方向。它同时忽略两种行为不变变换，并满足归一化 regret 上界</p>
+      <div class="math-card">\[\frac{\operatorname{Reg}_\theta(\pi_{\theta'})}{\Dnorm{\theta}}\le d_\circ(\theta,\theta').\]</div>
 
-      <section id="limits">
-        <h2><span class="num">8</span>四层逻辑必须逐层经过</h2>
-        <table>
-          <thead><tr><th>层级</th><th>事件</th><th>本文是否保证？</th></tr></thead>
-          <tbody>
-            <tr><td>① 分数事件覆盖</td><td>\(s_{\mathrm{new}}\le q_\gamma\)</td><td>是，来自 split conformal 的秩论证。</td></tr>
-            <tr><td>② 可行奖励集相交</td><td>\(K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\varnothing\)</td><td>是；这是分数最小化的精确等价。</td></tr>
-            <tr><td>③ 潜在射线包含</td><td>\(\hat\theta_{\mathrm{new}}^\circ\in B_R\)</td><td>需要额外的认证 fiber 直径 \(\eta\)，并使用扩张半径 \(R\)。</td></tr>
-            <tr><td>④ 相对参考安全</td><td>\(V_{\hat\theta_{\mathrm{new}}}(\mu_R)\ge V_{\hat\theta_{\mathrm{new}}}(\mu_{\mathrm{ref}})\)</td><td>在第③层事件上成立，因此边际概率至少为 \(\gamma\)。不是相对点估计策略的保证。</td></tr>
-          </tbody>
-        </table>
-        <h3>8.1 为什么这不再是“把两个模块拼起来”？</h3>
-        <p>占用特征多面体 \(Z(P)\) 是统一起点：奖励是其上的线性函数；\(K(\pi)\) 是策略点对应的法锥；差分体 \(Z(P)-Z(P)\) 的支持函数给出校准距离；同一差分体的极对偶规范给出鲁棒惩罚。真正需要另加的只有可辨识性条件 \(\eta\)，而论文把它写在定理前提里，不再隐藏。</p>
-        <h3>8.2 理想分数与可解分数的取舍</h3>
-        <p>若直接计算到单位跨度 fiber 的距离，包含半径可缩成 \(q_\gamma+\eta\)，但约束 \(\Dnorm{\theta}=1\) 非凸。当前 LP 分数允许锥内任意尺度，因此付出 \(2q_\gamma\) 的归一化代价。这个常数是计算性与统计半径之间的明确交换。</p>
-      </section>
+      <div class="callout prior">
+        <div class="title">与 STARC 的关系</div>
+        <p>占用跨度在精神上扮演 STARC 式“规范化—归一化”对的角色（相对已知的 \(P\)），本文不提出新的奖励度量；新意在于把它用作 Bellman 锥上的 conformal 分数，并明确写出所得半径仍需的识别假设。</p>
+      </div>
+    </section>
 
-      <section id="experiments">
-        <h2><span class="num">9</span>实验究竟说明什么？</h2>
-        <p>这里刻意只保留三个机制实验。主审计覆盖 3 个环境、2 个非空中心估计器（MaxEnt 与 Bayesian）、10 个种子；每次运行各有 20 个训练、20 个校准、20 个测试演示者，共 60 次拟合和 1,200 个测试奖励。置信区间以 30 个环境—种子块为独立重复单位，先平均共享同一批数据的两个估计器，再计算 95% Student-\(t\) 区间。</p>
-        <h3>9.1 实验一：对“什么都没改变”的干预，半径会不会改变？</h3>
-        <p>实验施加可逆特征变换 \(\phi\mapsto A\phi\)、\(\theta\mapsto A^{-\top}\theta\)。每个状态—动作奖励、最优策略和演示数据都完全相同，只有坐标写法变了。因此这不是普通相关性比较，而是一个直接的反事实检验：正确的奖励不确定性不应移动。</p>
+    <section id="cone">
+      <h2><span class="num">6</span>Bellman 可行奖励锥：哪些奖励能解释观测策略？</h2>
+      <h3>6.1 从“策略最优”到线性不等式</h3>
+      <div class="math-card">\[Q^\pi_\theta(s,a)\le Q^\pi_\theta(s,\pi(s)),\qquad\forall s,a.\]</div>
+
+      <h3>6.2 Bellman 预解式</h3>
+      <p>固定 \(\pi\)，令</p>
+      <div class="math-card">
+        \[
+        W_\pi=(I-\beta P_\pi)^{-1}\Phi_\pi,\qquad
+        V^\pi_\theta=W_\pi\theta,
+        \]
+        \[
+        Q^\pi_\theta(s,a)=\Psi_\pi(s,a)^\top\theta,\quad
+        \Psi_\pi(s,a)=\phi(s,a)+\beta P(s,a,\cdot)W_\pi.
+        \]
+      </div>
+      <p>于是解释策略 \(\pi\) 的奖励构成多面锥</p>
+      <div class="math-card">
+        \[
+        K(\pi)=\{\theta:
+        \Psi_\pi(s,a)^\top\theta\le
+        \Psi_\pi(s,\pi(s))^\top\theta,\ \forall s,a\}.
+        \]
+      </div>
+      <p>价值函数已经被消掉，所以可行性检查变成<strong>只含 \(\theta\)</strong> 的 \(|S|(|A|-1)\) 条线性不等式，决策变量只有 \(d\) 个。论文对这个化简做了独立复核：与直接联立 \((\theta,V)\) 的参考实现对比，精度到求解器容差，速度快 2–5.5 倍（\(|S|\) 从 20 到 100）；不同策略只差 \(k\) 个状态时，用 Sherman–Morrison–Woodbury 以 \(O(k|S|^2+k^3)\) 更新，不必每次重解。</p>
+
+      <h3>6.3 必须区分的两个集合</h3>
+      <table>
+        <caption>两个集合的用途与计算性质不同，混用会得出错误结论。</caption>
+        <thead><tr><th scope="col">集合</th><th scope="col">用途</th><th scope="col">计算性质</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">\(K(\pi)\)</th><td>决策感知距离分数</td><td>无界多面锥；配合跨度上图得到 LP。</td></tr>
+          <tr><th scope="row">\(\hat\Theta_2(\pi)=K(\pi)\cap\{\|\theta\|_2\le1\}\)</th><td>角度 CIO 基线</td><td>含二阶锥约束，不能称为纯 LP。</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <div class="title">\(K(\pi)\) 不是奖励等价类</div>
+        <p>正缩放和加性空方向是所有行为都具有的结构对称性；但同一个 \(K(\pi)\) 内仍可包含会对其他策略作出不同排序的奖励。它是逆问题的 fiber（初始分布全支撑时即法锥），其剩余宽度正是第二阶段必须控制的识别误差。</p>
+      </div>
+    </section>
+
+    <section id="conformal">
+      <h2><span class="num">7</span>Conformal 校准：有限样本保证什么？</h2>
+      <h3>7.1 距离到可行锥的分数</h3>
+      <div class="math-card">
+        \[\bar\theta^\circ=\bar\theta/\Dnorm{\bar\theta},\qquad
+        s_k:=\min_{\theta\in K(\pi_k)}\Dnorm{\theta-\bar\theta^\circ}.\]
+      </div>
+      <p>\(s_k\) 小，表示演示者的可行奖励锥离中心近；\(s_k\) 大，表示集合必须扩得更宽才能碰到一种兼容解释。</p>
+      <p>因为零奖励属于每个锥，\(0\le s_k\le1\)。这个分数无量纲，对中心奖励的正缩放、加性空方向以及可逆特征重参数化都不变；它是单个线性规划（\(d+2|S|\) 个变量）。</p>
+
+      <h3>7.2 校准集合与精确等价</h3>
+      <div class="math-card">
+        \[
+        B_q:=\{\theta:\Dnorm{\theta-\bar\theta^\circ}\le q\},
+        \]
+        \[
+        s_k\le q\quad\Longleftrightarrow\quad K(\pi_k)\cap B_q\ne\varnothing.
+        \]
+      </div>
+      <p>分数事件不是被勉强“解释成”集合覆盖；它由最小距离定义直接等价于集合相交。</p>
+
+      <h3>7.3 分位数与有限样本保证</h3>
+      <div class="callout">
+        <div class="title">这一步是现成的，不是本工作的贡献</div>
+        <p>下面的分位数取法和覆盖率论证就是 split conformal prediction（Vovk et al. 2005），也正是 CIO 的 Theorem 1–2 所用的同一套论证：CIO 取 \(\{c_k\}\) 的第 \(\lceil\gamma(n+1)\rceil\) 大值，我们取 \(\{s_k\}\) 的第 \(\tau\) 小值，两者只差一个单调变换。顺序决策的结构没有改变这个论证的任何一步。真正需要设计的是它两侧的东西：<strong>校准的是哪一个几何下的距离</strong>（§7.1）和<strong>校准出来的事件到底能推出什么</strong>（§7.4–7.5：相交 ≠ 包含）。</p>
+      </div>
+      <p>设校准分数有 \(n\) 个。令 \(\tau=\lceil\gamma(n+1)\rceil\)，取第 \(\tau\) 小分数为 \(q_\gamma\)；若 \(\tau=n+1\)，使用 \(+\infty\) 哨兵。</p>
+      <div class="math-card">
+        \[
+        \P[K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\varnothing]\ge\gamma.
+        \]
+      </div>
+      <details>
+        <summary>为什么交换性足够？</summary>
+        <div>
+          <p>训练集固定后，\(\bar\theta\) 固定。校准演示者与新演示者独立同分布，所以 \(s_1,\ldots,s_n,s_{\mathrm{new}}\) 可交换；新分数的秩对称。选择 \(\lceil\gamma(n+1)\rceil\) 分位数便得到至少 \(\gamma\) 的边际覆盖。</p>
+          <p>“边际”表示概率平均了训练/校准样本和新演示者，并不保证每个已拟合集合或每个子群体都有条件覆盖。</p>
+        </div>
+      </details>
+
+      <h3>7.4 三种构造的事件并不完全相同</h3>
+      <table>
+        <caption>目标水平为 \(\gamma=0.8\)。三种分数事件都达到目标，但它们<em>分别</em>等价于哪一种集合事件并不相同。</caption>
+        <thead><tr><th scope="col">构造</th><th scope="col">校准事件</th><th scope="col">是否等于可行集相交？</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">角度 CIO</th><td>归一化可行截面与球冠相交</td><td>是。</td></tr>
+          <tr><th scope="row">Value gap</th><td>\(V_{\bar\theta}(\mu^*_{\bar\theta})-V_{\bar\theta}(\mu_{\pi_k})\le q\)</td><td><strong>否。</strong>把 gap 阈值换成欧氏半径逆用了单向 Lipschitz 上界。</td></tr>
+          <tr><th scope="row">决策感知跨度</th><td>\(s_k\le q\)</td><td>是，由最小距离精确等价。</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout limit">
+        <div class="title">相交不等于包含</div>
+        <p>\(K(\pi_{\mathrm{new}})\cap B_q\ne\varnothing\) 只说明存在某个能解释新策略的奖励。它不说明演示者真正使用的 \(\hat\theta_{\mathrm{new}}^\circ\) 位于 \(B_q\) 中。</p>
+      </div>
+
+      <h3>7.5 第二阶段：用 fiber 宽度把相交变成包含</h3>
+      <p>定义单位跨度逆 fiber</p>
+      <div class="math-card">
+        \[F^\circ(\pi)=\{\theta\in K(\pi):\Dnorm{\theta}=1\}.\]
+      </div>
+      <p>若有外部知识能够认证每个部署 fiber 的射影直径不超过 \(\eta\)，且每个潜在奖励行为非零（\(\Dnorm{\hat\theta}>0\)），则 LP 分数给出</p>
+      <div class="math-card">
+        \[R=\min\{2,\,2q_\gamma+\eta\},\qquad
+        \P[\Dnorm{\hat\theta_{\mathrm{new}}^\circ-\bar\theta^\circ}\le R]\ge\gamma.\]
+      </div>
+      <p>因子 \(2q_\gamma\) 来自两步：先找到离中心不超过 \(q_\gamma\) 的锥内见证，再把见证归一化到单位跨度，至多再移动 \(q_\gamma\)。若 \(q_\gamma\ge1\)，见证可能是零奖励，只能退回通用半径 \(R=2\)。</p>
+      <p>换个角度看：若改用<strong>最大</strong>距离 \(s^{\max}(\pi):=\max_{u\in F^\circ(\pi)}\Dnorm{u-\bar\theta^\circ}\) 作分数，同一 conformal 论证只凭假设 1 就直接给出包含；但这是凸函数在非凸集上的最大化，论文不求解它。在假设 2 下逐点有 \(s^{\max}\le 2s+\eta\)，而单调递增变换与次序统计量可交换，故 \(q^{\max}_\gamma\le 2q_\gamma+\eta\)。所以 \(\eta\) 不是流程运转所需的信息，而是把非凸分数换成线性规划所付出的代价：在 \(F^\circ\) 上取最小可去掉因子 2（\(R=\min\{2,q_\gamma+\eta\}\)），取最大则连 \(\eta\) 也可去掉，但两者都非凸。</p>
+
+      <div class="callout warning">
+        <div class="title">\(\eta\) 不能靠同一条 conformal 定理凭空得到</div>
+        <p>它需要侧信息、多环境观测、主动比较或其他识别结构。完全没有额外信息时，唯一通用认证是 \(\eta=2\)，虽然正确，却通常没有处方价值。</p>
+      </div>
+    </section>
+
+    <section id="robust">
+      <h2><span class="num">8</span>相对鲁棒决策：为什么需要参考占用测度？</h2>
+      <h3>8.1 绝对最坏情况可能无界</h3>
+      <p>半范数球沿加性空方向无界。直接求</p>
+      <div class="math-card">\[\max_{\mu\in\M(P)}\min_{\theta\in B_R}V_\theta(\mu)\]</div>
+      <p>时，对手可能沿空方向把所有策略的绝对价值一起推向负无穷。这不影响策略比较，却会破坏绝对值目标。</p>
+
+      <h3>8.2 改为相对参考策略的优势</h3>
+      <div class="math-card">
+        \[
+        \max_{\mu\in\M(P)}\min_{\theta\in B_R}
+        [V_\theta(\mu)-V_\theta(\mu_{\mathrm{ref}})].
+        \]
+      </div>
+      <p>给所有策略加同一常数的方向会在差值中抵消。实验以校准演示者的平均占用测度为参考。</p>
+
+      <h3>8.3 支持函数—规范函数对偶给出 LP</h3>
+      <p>沿用第 5.1 节的差分体 \(\DF=\Phi^\top(\M(P)-\M(P))/(1-\beta)\)，并令 \(x=\Phi^\top(\mu-\mu_{\mathrm{ref}})/(1-\beta)\)，则</p>
+      <div class="math-card">
+        \[
+        \min_{\Dnorm{\delta}\le R}
+        \frac{(\bar\theta^\circ+\delta)^\top\Phi^\top(\mu-\mu_{\mathrm{ref}})}{1-\beta}
+        =\min_{\Dnorm{\delta}\le R}(\bar\theta^\circ+\delta)^\top x
+        =(\bar\theta^\circ)^\top x-R\,\gamma_{\DF}(x).
+        \]
+      </div>
+      <p>第一项就是 \(V_{\bar\theta^\circ}(\mu)-V_{\bar\theta^\circ}(\mu_{\mathrm{ref}})\)。\(\gamma_{\DF}\) 是 \(\DF\) 的 Minkowski 规范函数，可由两份缩放占用流变量线性表示。\(1-\beta\) 只出现一次，已经包含在 \(x\) 和 \(\DF\) 的定义里，不可省略，也不能再除一次：\(\Dnorm{\cdot}=h_{\DF}\) 正是靠这个因子才等于真实价值差；漏掉或重复它都会让中心项与惩罚项在 \(\beta=0.9\) 时相差 10 倍。</p>
+      <p>更重要的是结构上的呼应：校准用 \(\DF\) 的支持函数，鲁棒化用它的极对偶规范函数，两者来自<strong>同一个</strong>占用差分体。</p>
+
+      <h3>8.4 由包含得到相对参考的安全性</h3>
+      <p>参考占用本身的最坏相对优势恒为零，所以鲁棒最优解的最坏优势至少为零。在潜在归一化奖励落入 \(B_R\) 的事件上，便有</p>
+      <div class="math-card">
+        \[
+        V_{\hat\theta_{\mathrm{new}}}(\mu_R)\ge
+        V_{\hat\theta_{\mathrm{new}}}(\mu_{\mathrm{ref}}),
+        \qquad\text{概率至少为 }\gamma.
+        \]
+      </div>
+
+      <h3>8.5 退化阈值：\(R\ge1\)</h3>
+      <p>单位跨度中心对任意候选占用的中心优势不超过规范惩罚，因此鲁棒目标至多为</p>
+      <div class="math-card">\[(1-R)\gamma_{\DF}(x).\]</div>
+      <p>当 \(R\ge1\) 时它对所有候选都不大于零，而参考占用达到零，所以最优相对鲁棒值为零；当 \(R&gt;1\) 时每个最优解都与参考特征等价（模空方向），\(R=1\) 时还可能出现暴露面上的额外并列解。要得到非平凡安全改善，LP 桥至少要求 \(2q_\gamma+\eta&lt;1\)。</p>
+
+      <div class="callout warning">
+        <div class="title">参考策略不是 conformal 定理选出来的</div>
+        <p>\(\mu_{\mathrm{ref}}\) 是建模选择。若用点估计自己的最优占用测度作参考，最优相对优势会退化为零；不同参考也可能产生不同策略，因此部署前需要敏感性分析。</p>
+      </div>
+
+      <h3>8.6 固定核下鲁棒目标是凹的——以及它什么时候不成立</h3>
+      <div class="callout limit">
+        <div class="title">凹性定理</div>
+        <p><strong>(a)</strong> 对<strong>任意</strong>非空紧集 \(C\subseteq\R^d\)，只要 \(P\) 固定且已知，\(\max_{\mu\in\M(P)}\min_{\theta\in C}\theta^\top\Phi^\top\mu\) 就是固定多面体上的凹最大化，因而是凸外问题——前提是 \(C\) 有一个可高效计算的线性最小化 oracle。</p>
+        <p><strong>(b)</strong> 这个保证<strong>不</strong>在奖励与转移耦合时保留：存在一个 2 状态 2 动作 MDP 和一个关于 \((\theta,P)\) 的一维凸非乘积模糊集，其最坏情况价值函数<strong>不是</strong>凹的。</p>
+      </div>
+      <details>
+        <summary>展开看 (b) 的反例构造</summary>
+        <div>
+          <p>令 \(s_0\) 活跃、\(s_1\) 吸收且奖励为零。在 \(s_0\)：动作 \(a_0\) 收益零并转到 \(s_1\)；动作 \(a_1\) 收益 \(1+t\)，并以概率 \(1-t\) 回到 \(s_0\)（否则去 \(s_1\)），同一个模糊参数 \(t\in[0,1]\) 同时耦合奖励与动力学。\(s_1\) 的两个动作都是零奖励自环。从 \(s_0\) 出发，令平稳策略以概率 \(p\) 选 \(a_1\)，则</p>
+          <div class="math-card">\[W(p)=\min_{t\in[0,1]}\frac{p(1+t)}{1-\beta p(1-t)}.\]</div>
+          <p>在 \(\beta=0.9\) 时，\(W(0)=0\)，\(W(5/9)=10/9\)（与 \(t\) 无关），\(W(5/18)=\min_t 10(1+t)/(27+9t)=10/27\)，在 \(t=0\) 取到。由于 \(5/18=\tfrac12(0+5/9)\)，凹性要求 \(W(5/18)\ge5/9\)，但 \(10/27\approx0.370<0.556\)。</p>
+        </div>
+      </details>
+      <div class="callout warning">
+        <div class="title">这条结论的边界，不要越读</div>
+        <p>(b) 是<strong>存在性</strong>结论：它说明凹性会失效，不等于问题难解；rectangular 等结构化情形仍然可处理。定理 (a) 也不覆盖 \(d\)-rectangular 模糊集（奖励与转移分量一起随数据源变化）的完整设定——固定 \(P\) 恰好抹掉了那种耦合，它覆盖的只是这类集合在“仅奖励”受限下的那一个特例。</p>
+      </div>
+    </section>
+
+    <section id="limits">
+      <h2><span class="num">9</span>四层逻辑必须逐层经过</h2>
+      <table>
+        <caption>四层事件是<strong>依次</strong>依赖的，跳过任何一层都会得到一个其实没有被证明的结论。</caption>
+        <thead><tr><th scope="col">层级</th><th scope="col">事件</th><th scope="col">本文是否保证？</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">① 分数事件覆盖</th><td>\(s_{\mathrm{new}}\le q_\gamma\)</td><td>是，来自 split conformal 的秩论证。</td></tr>
+          <tr><th scope="row">② 可行奖励集相交</th><td>\(K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\varnothing\)</td><td>是；这是分数最小化的精确等价。</td></tr>
+          <tr><th scope="row">③ 潜在射线包含</th><td>\(\hat\theta_{\mathrm{new}}^\circ\in B_R\)</td><td>需要额外的认证 fiber 直径 \(\eta\)，并使用扩张半径 \(R\)。</td></tr>
+          <tr><th scope="row">④ 相对参考安全</th><td>\(V_{\hat\theta_{\mathrm{new}}}(\mu_R)\ge V_{\hat\theta_{\mathrm{new}}}(\mu_{\mathrm{ref}})\)</td><td>在第③层事件上成立，因此边际概率至少为 \(\gamma\)。不是相对点估计策略的保证。</td></tr>
+        </tbody>
+      </table>
+
+      <h3>9.1 为什么这不再是“把两个模块拼起来”？</h3>
+      <p>占用特征多面体 \(\M(P)\) 是统一起点：奖励是其上的线性函数；\(K(\pi)\) 是解释该策略的 Bellman 可行锥（初始分布全支撑时即策略点处的法锥）；差分体 \(\DF=\Phi^\top(\M(P)-\M(P))/(1-\beta)\) 的支持函数给出校准距离 \(\Dnorm{\cdot}=h_{\DF}\)；同一差分体的极对偶规范给出鲁棒惩罚。真正需要另加的只有可辨识性条件 \(\eta\)，而论文把它写在定理前提里，不再隐藏。</p>
+
+      <h3>9.2 理想分数与可解分数的取舍</h3>
+      <p>若直接计算到单位跨度 fiber 的距离，包含半径可缩成 \(q_\gamma+\eta\)，但约束 \(\Dnorm{\theta}=1\) 非凸。当前 LP 分数允许锥内任意尺度，因此付出 \(2q_\gamma\) 的归一化代价。这个常数是计算性与统计半径之间的明确交换。</p>
+    </section>
+
+    <section id="experiments">
+      <h2><span class="num">10</span>实验究竟说明什么？</h2>
+      <p>这里刻意只保留三个机制实验。主审计覆盖 3 个环境、2 个中心占用跨度非零的估计器（MaxEnt 与 Bayesian）、10 个种子；每次运行各有 20 个训练、20 个校准、20 个测试演示者，共 60 次运行和 1,200 个测试奖励。置信区间以 30 个环境—种子块为独立重复单位，先平均共享同一批数据的两个估计器，再计算 95% Student-\(t\) 区间。</p>
+
+      <h3>10.1 实验一：对“什么都没改变”的干预，半径会不会改变？</h3>
+      <p>对每个 \(\kappa\in\{1,2,5,10,50,200\}\) 和 10 个种子中的每一个，实验随机生成一个 MDP（\(|S|=6\)、\(|A|=3\)、\(d=4\)）、一个中心和 16 个校准演示者，再随机生成条件数为 \(\kappa\) 的对称正定矩阵 \(A\)，施加可逆特征变换 \(\phi\mapsto A\phi\)、\(\theta\mapsto A^{-\top}\theta\)。每个状态—动作奖励、最优策略和演示数据都完全相同，只有坐标写法变了。因此这不是普通相关性比较，而是一个直接的反事实检验：正确的奖励不确定性不应移动。</p>
+      <ul>
+        <li>点态奖励最大数值差只有 \(2.1\times10^{-14}\)。</li>
+        <li>当条件数 \(\kappa=200\) 时，角度半径平均移动 \(0.424\) 弧度，即 \(24.3^\circ\)；最坏种子移动 \(1.071\) 弧度。</li>
+        <li>单位跨度 decision-aware 半径的最大变化为 \(2.0\times10^{-8}\)，处于求解器误差量级。</li>
+      </ul>
+      <div class="callout intuition">
+        <div class="title">但不变性本身并不是卖点</div>
+        <p>value-gap 分数<strong>同样</strong>是不变的——它由价值而非坐标算出——而且更低，因为它连 LP 都不需要。但 §10.2 会看到，它换算出来的半径<strong>两个事件都不保证</strong>。所以正确结论不是“跨度半范数 uniquely invariant”，而是：<strong>不变性是必要条件，不是充分条件。</strong></p>
+      </div>
+      <p>所以实验一支持的结论很窄但很强：欧氏角度不是这个 IRL 问题的内在几何；它不支持“新方法的策略一定更好”。</p>
+
+      <h3>10.2 实验二：相交覆盖与潜在奖励包含是否真有差别？</h3>
+      <table>
+        <caption>目标 \(\gamma=0.8\)，3 个环境 × 2 个估计器 × 10 个种子；± 为 30 个环境—种子块上的 95% t 区间半宽。左列是分数事件覆盖，右列是在<strong>同一个</strong> Stage-I 半径上直接包含潜在奖励的比例。</caption>
+        <thead><tr><th scope="col">构造</th><th scope="col">校准事件覆盖</th><th scope="col">用 Stage-I 半径直接包含潜在奖励</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">角度球冠</th><td>\(0.812\pm0.042\)</td><td>\(0.368\pm0.095\)</td></tr>
+          <tr><th scope="row">Value-gap 球</th><td>\(0.838\pm0.046\)</td><td>\(0.004\pm0.005\)</td></tr>
+          <tr><th scope="row">决策感知跨度</th><td>\(0.819\pm0.036\)</td><td>\(0.438\pm0.081\)</td></tr>
+        </tbody>
+      </table>
+      <p>三种分数事件都达到目标；角度和 decision-aware 的分数事件还分别精确等价于逆集合相交。但同一个 \(q_\gamma\) 对潜在奖励的包含率远低于目标。decision-aware 的第三列已使用不随特征重参数化变化的射影跨度距离，因此它直接展示：Stage I 正确，不代表 Stage II 自动成立。</p>
+      <p>value-gap 那一行同时说明两件事：它的分数事件<strong>并不</strong>等价于逆集合相交（§7.4），所以 0.838 只是分数覆盖；换成欧氏半径后包含率掉到 0.004。</p>
+
+      <h3>10.3 实验三：额外识别必须强到什么程度？</h3>
+      <p>对每次运行，定义可直接观测的“识别预算”</p>
+      <div class="math-card">\[b=\max\{1-2q_\gamma,0\}.\]</div>
+      <p>外部认证的 fiber 宽度必须满足 \(\eta&lt;b\)，才有 \(R=2q_\gamma+\eta&lt;1\)。这张前沿图不是从测试真值“估计” \(\eta\)，而是在回答：未来的多环境观测、主动比较或先验约束至少要把 fiber 压到多窄。</p>
+      <ul>
+        <li>\(q_\gamma\) 的总体均值为 \(0.316\)，中位数为 \(0.289\)，范围为 \([0.019,0.871]\)。</li>
+        <li>如果外部机制能认证 \(\eta=0\)、\(0.2\)、\(0.5\)，分别有 85.0%、76.7%、36.7% 的运行仍满足 \(R&lt;1\)。</li>
+        <li>在 \(\eta=0.2\) 的假设下，random MDP、gridworld、Objectworld 的非退化比例分别为 95%、60%、75%。</li>
+        <li>使用唯一通用证书 \(\eta=2\) 时，所有运行都有 \(R=2\)，非退化比例严格为 0。</li>
+      </ul>
+
+      <h3>10.4 为什么“包含率 1、参考安全率 1”并不是好消息？</h3>
+      <p>在通用 \(\eta=2\) 下，扩张包含率与相对参考安全率都等于 1，但算法返回的正是参考占用测度。这里的 1 只是定理和实现相互吻合：集合大到足以包含一切，也大到不允许任何安全改进。不能把它写成“我们取得 100% 安全且性能优越”。</p>
+
+      <h3>10.5 点估计器也有定义域检查</h3>
+      <p>exact-fit LP-IRL 在 30 个环境—种子拟合中有 1 次返回占用跨度为零的中心。此时单位跨度代表元不存在。主射影审计因此使用每次都产生占用跨度非零中心的 MaxEnt 与 Bayesian；LP-IRL 的失败被记录为 abstention，而不是加一个任意 epsilon 掩盖。</p>
+
+      <h3>10.6 Regret 表格：构造部分没有被检验</h3>
+      <table>
+        <caption>真实奖励平均 regret，\(\gamma=0.8\)，每格 10 个种子，越低越好；<strong>加粗</strong>是跨度策略胜过点估计的格。span 用 Stage-I 半径 \(q_\gamma\)（无包含保证），safe 用 \(\eta=2\) 的认证半径 \(R\)。</caption>
+        <thead>
+          <tr>
+            <th scope="col">环境</th><th scope="col">估计器</th><th scope="col">point</th>
+            <th scope="col">span</th><th scope="col">safe (\(R\))</th><th scope="col">angular</th><th scope="col">value-gap</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">gridworld</th><td>Bayesian</td><td>0.019</td><td>0.033</td><td>0.051</td><td>0.027</td><td>0.016</td></tr>
+          <tr><th scope="row">gridworld</th><td>MaxEnt</td><td>0.038</td><td><strong>0.033</strong></td><td>0.051</td><td>0.046</td><td>0.031</td></tr>
+          <tr><th scope="row">Objectworld</th><td>Bayesian</td><td>0.028</td><td><strong>0.018</strong></td><td>0.035</td><td>0.079</td><td>0.028</td></tr>
+          <tr><th scope="row">Objectworld</th><td>MaxEnt</td><td>0.018</td><td>0.019</td><td>0.035</td><td>0.043</td><td>0.031</td></tr>
+          <tr><th scope="row">random MDP</th><td>Bayesian</td><td>0.003</td><td>0.009</td><td>0.034</td><td>0.049</td><td>0.004</td></tr>
+          <tr><th scope="row">random MDP</th><td>MaxEnt</td><td>0.004</td><td>0.008</td><td>0.034</td><td>0.025</td><td>0.005</td></tr>
+        </tbody>
+      </table>
+      <p>Stage-I 跨度策略 6 格赢 2、输 4；认证的 Stage-II 策略<strong>在每一格都比点估计差</strong>。这正是退化命题预测的结果：足以认证包含的半径，也大到把解拉回参考策略。这些比较都不在定理 1 的覆盖范围内——它保证的是对 \(\mu_{\mathrm{ref}}\) 的优势，不是对点估计的优势。论文报告这张表是为了让正文里的说法有出处，而不是把它当作性能提升的证据。</p>
+      <div class="callout warning">
+        <div class="title">不要太快地把 value-gap 球一笔抹掉</div>
+        <p>表里 value-gap 那个球——论文说它<strong>什么都不保证</strong>——却在 6 格中有 3 格与点估计持平或更好，另 2 格差距在 0.001 以内。一个没有认证的惩罚项仍然可以是有用的正则化器。论文附录里对它“什么都不保证”的判断针对的是认证，而不是经验 regret；这两件事应分开看。</p>
+      </div>
+
+      <h3>10.7 集中不等式基线</h3>
+      <p>在角度分数上，DKW 界在所有测过的情形下都不比精确 conformal 校准更窄。在 value-gap 分数上，校正后的水平 \(\gamma+\varepsilon\) 在 \(\gamma=0.8\)、\(\delta=0.05\)、\(N\le46\) 时超过 1，所以在本文的校准规模下 DKW 半径是无穷大、什么也不保证；若人为截断为 \(10\|\bar\theta\|_2\)，真实奖励 regret 是点估计的 4–460 倍——这个倍数反映的是截断值，而不是界本身。</p>
+
+      <div class="callout limit">
+        <div class="title">这些实验没有证明什么？</div>
+        <p>它们没有证明 decision-aware 鲁棒化总能降低真实 regret，也没有提供一个新的 \(\eta\) 认证方法。更要紧的是：构造部分根本没有被检验——在全部报告的实验里安全策略都等于参考策略，所以那些数字只验证了退化命题，别的一概没有验证。论文点出两条补救路线（精确计算 \(s^{\max}\)、认证小 \(\eta\)）却两条都没试，而实验里 \(d\le5\)、讨论里也说了小 \(d\) 可枚举。当前最扎实的贡献是：把表示错误、相交—包含缺口以及所需识别强度分别测出来。</p>
+      </div>
+    </section>
+
+    <section id="novelty">
+      <h2><span class="num">11</span>创新在哪里？哪些不是新的？</h2>
+      <h3>11.1 可信的创新定位</h3>
+      <ul>
+        <li>用保持奖励函数不变的特征重参数化实验，定量揭示角度 CIO 在 IRL 中的坐标依赖。</li>
+        <li>结合 Bellman 可行奖励锥与占用跨度，构造具有精确相交含义的 conformal 分数。</li>
+        <li>用单位跨度射影化同时处理正尺度和加性空方向，同时保持 Stage-I 分数为 LP。</li>
+        <li>以 fiber 直径 \(\eta\) 明确连接相交覆盖、潜在奖励包含和参考相对安全处方。</li>
+        <li>证明退化阈值：\(R\ge1\) 时处方必然平凡，并让代码直接报告保证是否非平凡。</li>
+      </ul>
+
+      <h3>11.2 已有基础</h3>
+      <div class="callout prior">
+        <div class="title">这是组合创新，不是每个零件都首次出现</div>
         <ul>
-          <li>点态奖励最大数值差只有 \(2.2\times10^{-14}\)。</li>
-          <li>当条件数 \(\kappa=200\) 时，角度半径平均移动 \(0.424\) 弧度，即 \(24.3^\circ\)；最坏种子移动 \(1.071\) 弧度。</li>
-          <li>单位跨度 decision-aware 半径的最大变化为 \(2.0\times10^{-8}\)，处于求解器误差量级。</li>
+          <li><a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/7423902b5534e2b267438c85444a54b1-Paper-Conference.pdf">Conformal Inverse Optimization</a> 已提供校准—鲁棒化框架，并证明学习集合以指定边际概率与下一次逆可行参数集相交。本文的 fiber 宽度桥是新增假设，不能归给 CIO。</li>
+          <li><a href="https://arxiv.org/abs/2309.15257">STARC</a> 已研究行为相关的奖励规范化与 regret 几何。</li>
+          <li>Bellman 最优性不等式描述可行奖励集合，是经典 IRL 几何。</li>
+          <li>逐点最小线性函数的凹性和支持函数—规范函数对偶属于标准凸分析。</li>
         </ul>
-        <p>所以实验一支持的结论很窄但很强：欧氏角度不是这个 IRL 问题的内在几何；它不支持“新方法的策略一定更好”。</p>
-        <h3>9.2 实验二：相交覆盖与潜在奖励包含是否真有差别？</h3>
-        <table>
-          <thead><tr><th>构造</th><th>校准事件覆盖</th><th>用 Stage-I 半径直接包含潜在奖励</th></tr></thead>
-          <tbody>
-            <tr><td>角度球冠</td><td>\(0.812\pm0.042\)</td><td>\(0.368\pm0.095\)</td></tr>
-            <tr><td>Value-gap 球</td><td>\(0.838\pm0.046\)</td><td>\(0.004\pm0.005\)</td></tr>
-            <tr><td>决策感知跨度</td><td>\(0.819\pm0.036\)</td><td>\(0.438\pm0.081\)</td></tr>
-          </tbody>
-        </table>
-        <p>目标是 \(\gamma=0.8\)。三种分数事件都达到目标；角度和 decision-aware 的分数事件还分别精确等价于逆集合相交。但同一个 \(q_\gamma\) 对潜在奖励的包含率远低于目标。decision-aware 的第三列已使用不随特征重参数化变化的射影跨度距离，因此它直接展示：Stage I 正确，不代表 Stage II 自动成立。</p>
-        <h3>9.3 实验三：额外识别必须强到什么程度？</h3>
-        <p>对每次运行，定义可直接观测的“识别预算”</p>
-        <div class="math-card">\[b=\max\{1-2q_\gamma,0\}.\]</div>
-        <p>外部认证的 fiber 宽度必须满足 \(\eta&lt;b\)，才有 \(R=2q_\gamma+\eta&lt;1\)。这张前沿图不是从测试真值“估计” \(\eta\)，而是在回答：未来的多环境观测、主动比较或先验约束至少要把 fiber 压到多窄。</p>
-        <ul>
-          <li>\(q_\gamma\) 的总体均值为 \(0.316\)，中位数为 \(0.289\)，范围为 \([0.019,0.871]\)。</li>
-          <li>如果外部机制能认证 \(\eta=0\)、\(0.2\)、\(0.5\)，分别有 85.0%、76.7%、36.7% 的运行仍满足 \(R&lt;1\)。</li>
-          <li>在 \(\eta=0.2\) 的假设下，random MDP、gridworld、Objectworld 的非退化比例分别为 95%、60%、75%。</li>
-          <li>使用唯一通用证书 \(\eta=2\) 时，所有运行都有 \(R=2\)，非退化比例严格为 0。</li>
-        </ul>
-        <h3>9.4 为什么“包含率 1、参考安全率 1”并不是好消息？</h3>
-        <p>在通用 \(\eta=2\) 下，扩张包含率与相对参考安全率都等于 1，但算法返回的正是参考占用测度。这里的 1 只是定理和实现相互吻合：集合大到足以包含一切，也大到不允许任何安全改进。不能把它写成“我们取得 100% 安全且性能优越”。</p>
-        <h3>9.5 点估计器也有定义域检查</h3>
-        <p>exact-fit LP-IRL 在 30 个环境—种子拟合中有 1 次返回占用跨度为零的中心。此时单位跨度代表元不存在。主射影审计因此使用每次都产生非空中心的 MaxEnt 与 Bayesian；LP-IRL 的失败被记录为 abstention，而不是加一个任意 epsilon 掩盖。</p>
-        <div class="callout limit">
-          <div class="title">这些实验没有证明什么？</div>
-          <p>它们没有证明 decision-aware 鲁棒化总能降低真实 regret，也没有提供一个新的 \(\eta\) 认证方法。直接使用 Stage-I 半径的策略在 6 个平衡比较单元中只改善 2 个，而且不受 Stage-II 安全定理保护。当前最扎实的贡献是：把表示错误、相交—包含缺口以及所需识别强度分别测出来。</p>
-        </div>
-      </section>
+      </div>
 
-      <section id="novelty">
-        <h2><span class="num">10</span>创新在哪里？哪些不是新的？</h2>
-        <h3>10.1 可信的创新定位</h3>
-        <ul>
-          <li>用保持奖励函数不变的特征重参数化实验，定量揭示角度 CIO 在 IRL 中的坐标依赖。</li>
-          <li>结合 Bellman 可行奖励锥与占用跨度，构造具有精确相交含义的 conformal 分数。</li>
-          <li>用单位跨度射影化同时处理正尺度和加性空方向，同时保持 Stage-I 分数为 LP。</li>
-          <li>以 fiber 直径 \(\eta\) 明确连接相交覆盖、潜在奖励包含和参考相对安全处方。</li>
-          <li>证明 \(R\ge1\) 的尖锐退化边界，并让代码直接报告保证是否非平凡。</li>
-        </ul>
-        <h3>10.2 已有基础</h3>
-        <div class="callout prior">
-          <div class="title">这是组合创新，不是每个零件都首次出现</div>
-          <ul>
-            <li><a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/7423902b5534e2b267438c85444a54b1-Paper-Conference.pdf">Conformal Inverse Optimization</a> 已提供校准—鲁棒化框架，并证明学习集合以指定边际概率与下一次逆可行参数集相交。本文的 fiber 宽度桥是新增假设，不能归给 CIO。</li>
-            <li><a href="https://arxiv.org/abs/2309.15257">STARC</a> 已研究行为相关的奖励规范化与 regret 几何。</li>
-            <li>Bellman 最优性不等式描述可行奖励集合，是经典 IRL 几何。</li>
-            <li>逐点最小线性函数的凹性和支持函数—规范函数对偶属于标准凸分析。</li>
-          </ul>
-        </div>
-        <h3>10.3 最值得继续做的三条路线</h3>
-        <ol>
-          <li><strong>认证小 fiber 宽度：</strong>研究多环境、主动查询或偏好信息如何给出可用的 \(\eta\)。</li>
-          <li><strong>局部仿射归一化：</strong>用中心奖励的最佳—最差价值差作线性锚，探索更紧且仍为 LP 的半径。</li>
-          <li><strong>有限轨迹理论：</strong>把占用测度估计误差与 conformal 校准误差分开控制。</li>
-        </ol>
-        <div class="callout intuition">
-          <div class="title">如何评价这篇论文？</div>
-          <p>它现在更接近 CIO 的完整逻辑：先学习参数不确定集合，再据此处方；但它也指出，IRL 中从“逆集合相交”到“参数进入集合”需要额外识别宽度。这个桥以及何时退化，正是方法的核心，而不是附加补丁。</p>
-        </div>
-      </section>
+      <h3>11.3 下一步的两条独立路线</h3>
+      <p>开放问题不是再找一个 IRL 点估计器，而是有两条互相独立的路线：</p>
+      <ol>
+        <li>
+          <strong>算法路线：直接算 \(s^{\max}\)。</strong>
+          这样完全不需要 \(\eta\)。因为 \(\Dnorm{v}\) 是有限多个线性泛函的最大值（\(\M(P)\) 每对顶点一个），它的单位球是多面体，\(F^\circ(\pi)\) 是“多面锥 ∩ 该边界”，即有限个多面片的并，而凸函数在这个并上的最大值在某个顶点取到。小 \(d\) 时可枚举；一般情形的复杂度、以及 LP 与精确程序之间是否存在有用的松弛，论文留作开放问题。
+        </li>
+        <li>
+          <strong>数据路线：认证小的 \(\eta\)。</strong>
+          手段包括在多个动力学下重复观测同一位演示者、主动比较、或对奖励的外部已知限制。
+        </li>
+      </ol>
+      <p>两条路线互补——一条减少<em>必须假设</em>的东西，另一条加强<em>可以假设</em>的东西——并且都推动第 10.3 节的同一条前沿。</p>
 
-      <section id="cheatsheet">
-        <h2><span class="num">11</span>一页公式速查</h2>
-        <table>
-          <thead><tr><th>对象</th><th>公式</th><th>一句话解释</th></tr></thead>
-          <tbody>
-            <tr><td>占用测度</td><td>\(\mu_\pi=(1-\beta)\E_\pi\sum_t\beta^t\mathbf1_{(s_t,a_t)}\)</td><td>策略的折扣访问频率。</td></tr>
-            <tr><td>策略价值</td><td>\(V_\theta(\mu)=\theta^\top\Phi^\top\mu/(1-\beta)\)</td><td>奖励权重与期望特征的内积。</td></tr>
-            <tr><td>占用跨度</td><td>\(\Dnorm{v}=\max_\mu V_v(\mu)-\min_\mu V_v(\mu)\)</td><td>奖励差最多拉开多少策略价值。</td></tr>
-            <tr><td>射影跨度距离</td><td>\(d_\circ(\theta,\theta')=\Dnorm{\theta/\Dnorm{\theta}-\theta'/\Dnorm{\theta'}}\)</td><td>忽略正尺度与加性空方向。</td></tr>
-            <tr><td>Regret 上界</td><td>\(\operatorname{Reg}_\theta(\pi_{\theta'})\le\Dnorm{\theta-\theta'}\)</td><td>跨度控制优化错误奖励的损失。</td></tr>
-            <tr><td>可行奖励锥</td><td>\(K(\pi)=\{\theta:Q^\pi_\theta(s,a)\le Q^\pi_\theta(s,\pi(s))\}\)</td><td>所有能解释观测策略的奖励。</td></tr>
-            <tr><td>Conformal 分数</td><td>\(s_k=\min_{\theta\in K(\pi_k)}\Dnorm{\theta-\bar\theta^\circ}\)</td><td>单位跨度中心到可行奖励锥的 LP 距离。</td></tr>
-            <tr><td>相交保证</td><td>\(\P[K(\pi_{\rm new})\cap B_{q_\gamma}\ne\varnothing]\ge\gamma\)</td><td>新策略至少有一种兼容奖励落入集合。</td></tr>
-            <tr><td>包含半径</td><td>\(R=\min\{2,2q_\gamma+\eta\}\)（\(q_\gamma&lt;1\)）</td><td>用 fiber 宽度把相交升级为潜在射线包含。</td></tr>
-            <tr><td>相对鲁棒目标</td><td>\(\max_\mu\min_{\theta\in B_R}[V_\theta(\mu)-V_\theta(\mu_{\rm ref})]\)</td><td>在包含集合上防守相对参考策略的最坏优势。</td></tr>
-          </tbody>
-        </table>
-        <div class="one-line">一句话：conformal 给 \(q_\gamma\)，识别结构给 \(\eta\)，两者合成 \(R\)；只有当 \(R&lt;1\) 时，参考相对的鲁棒处方才可能非平凡。</div>
-        <p>
-          <span class="pill">表格型 MDP</span><span class="pill">线性奖励</span>
-          <span class="pill">完整最优策略</span><span class="pill">演示者交换性</span>
-          <span class="pill">边际覆盖</span>
-        </p>
-      </section>
-    </main>
-  </div>
+      <h3>11.4 适用边界</h3>
+      <div class="callout limit">
+        <div class="title">交换性单位要求很高</div>
+        <p>本文的交换性单位是“在共享的已知表格型 MDP 中、被完整观测到精确最优策略的一位演示者”，这是一个相当苛刻的单位。有限轨迹、近似最优性、子群体条件覆盖、MDP 偏移各自需要单独分析。协变量偏移加权或许能处理迁移的统计部分，但处理不了本文研究的可识别性条件。</p>
+      </div>
+      <div class="callout prior">
+        <div class="title">尚未测试的最近邻设定</div>
+        <p>基于偏好的奖励建模是最近的未测设定，那里同样两个问题会以不同的校准单位重现：一位标注者、一个校准点。Bradley–Terry 奖励模型只在不改变任何被建模比较的变换下被识别，因此与某位标注者偏好一致的奖励同样构成集合而非一点。</p>
+      </div>
+    </section>
+
+    <section id="cheatsheet">
+      <h2><span class="num">12</span>一页公式速查</h2>
+      <table>
+        <caption>全文符号的速查。\(V_\theta\) 的自变量一律是占用测度；\(\DF\) 是第 5.1 节定义的特征差分体。</caption>
+        <thead><tr><th scope="col">对象</th><th scope="col">公式</th><th scope="col">一句话解释</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">占用测度</th><td>\(\mu_\pi=(1-\beta)\E_\pi\sum_t\beta^t\mathbf1_{(s_t,a_t)}\)</td><td>策略的折扣访问频率。</td></tr>
+          <tr><th scope="row">策略价值</th><td>\(V_\theta(\mu)=\theta^\top\Phi^\top\mu/(1-\beta)\)</td><td>奖励权重与期望特征的内积。</td></tr>
+          <tr><th scope="row">占用跨度</th><td>\(\Dnorm{v}=\max_\mu V_v(\mu)-\min_\mu V_v(\mu)=h_{\DF}(v)\)</td><td>奖励差最多拉开多少策略价值。</td></tr>
+          <tr><th scope="row">特征差分体</th><td>\(\DF=\Phi^\top(\M(P)-\M(P))/(1-\beta)\)</td><td>校准与鲁棒共用的同一个几何体。</td></tr>
+          <tr><th scope="row">射影跨度距离</th><td>\(d_\circ(\theta,\theta')=\Dnorm{\theta/\Dnorm{\theta}-\theta'/\Dnorm{\theta'}}\in[0,2]\)</td><td>忽略正尺度与加性空方向。</td></tr>
+          <tr><th scope="row">Regret 上界</th><td>\(\operatorname{Reg}_\theta(\pi_{\theta'})\le\Dnorm{\theta-\theta'}\)</td><td>跨度控制优化错误奖励的损失；常数 1，且是满足该上界的逐点最小半范数（命题 2）。</td></tr>
+          <tr><th scope="row">可行奖励锥</th><td>\(K(\pi)=\{\theta:Q^\pi_\theta(s,a)\le Q^\pi_\theta(s,\pi(s))\}\)</td><td>所有能解释观测策略的奖励。</td></tr>
+          <tr><th scope="row">Conformal 分数</th><td>\(s_k=\min_{\theta\in K(\pi_k)}\Dnorm{\theta-\bar\theta^\circ}\)</td><td>单位跨度中心到可行奖励锥的 LP 距离。</td></tr>
+          <tr><th scope="row">相交保证</th><td>\(\P[K(\pi_{\rm new})\cap B_{q_\gamma}\ne\varnothing]\ge\gamma\)</td><td>新策略至少有一种兼容奖励落入集合。</td></tr>
+          <tr><th scope="row">包含半径</th><td>\(R=\min\{2,2q_\gamma+\eta\}\)</td><td>用 fiber 宽度把相交升级为潜在射线包含。</td></tr>
+          <tr><th scope="row">相对鲁棒目标</th><td>\(\max_\mu\min_{\theta\in B_R}[V_\theta(\mu)-V_\theta(\mu_{\rm ref})]\)</td><td>在包含集合上防守相对参考策略的最坏优势。</td></tr>
+          <tr><th scope="row">识别预算</th><td>\(b=\max\{1-2q_\gamma,0\}\)，需 \(\eta&lt;b\)</td><td>可观测地判定处方能否非平凡。</td></tr>
+        </tbody>
+      </table>
+      <div class="one-line">一句话：conformal 给 \(q_\gamma\)，识别结构给 \(\eta\)，两者合成 \(R\)；只有当 \(R&lt;1\) 时，参考相对的鲁棒处方才可能非平凡。</div>
+      <p class="pill-row">
+        <span class="pill">表格型 MDP</span><span class="pill">线性奖励</span>
+        <span class="pill">完整最优策略</span><span class="pill">演示者交换性</span>
+        <span class="pill">边际覆盖</span>
+      </p>
+    </section>
+  </main>
+
   <footer>
-    <p>本页面是论文 <a href="paper/main.pdf">《Calibrating What Behavior Identifies: Conformal Reward Sets for Inverse Reinforcement Learning》</a> 的中文数学导读；保证边界与当前修订版保持一致。</p>
+    <p>本页面是论文 <a href="paper/main.pdf">《Calibrating What Behavior Can Identify: Conformal Reward Sets for Inverse Reinforcement Learning》</a>（NeurIPS 2026 PUDM workshop，poster）的中文数学导读。页面内容与 <a href="paper/main.tex">camera-ready 源文件</a>逐条对应（标注为导读评论的部分除外；与投稿版的差异见 <a href="paper/ERRATA.md">勘误</a>）；若两者冲突，以论文为准。</p>
   </footer>
 </div>
 </body>

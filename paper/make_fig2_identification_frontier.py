@@ -1,9 +1,9 @@
 """Figure 2: the identification budget required for a nontrivial certificate.
 
-The tractable Stage-I score yields the containment radius R=2q+eta whenever
-q<1.  Proposition 5 says that safe robust prescription can differ from the
-reference only if R<1.  Hence each fitted/calibrated run has an observable
-identification budget
+The tractable Stage-I score yields the containment radius R=min{2, 2q+eta};
+for q<1 this is 2q+eta.  Proposition 4 says that safe robust prescription can
+differ from the reference only if R<1.  Hence each fitted/calibrated run has an
+observable identification budget
 
     eta_max = max(1 - 2*q, 0),
 

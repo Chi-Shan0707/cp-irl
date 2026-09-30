@@ -1,4 +1,4 @@
-"""Numerical audit of every displayed formula in paper/main.tex.
+"""Numerical audit of the displayed identities in paper/main.tex listed in App. C.
 
 Each check re-derives the paper's claim from scratch (brute force where
 possible) rather than calling the library routine the claim is about, so that
@@ -35,7 +35,7 @@ def all_deterministic_occupancies(mdp):
 
 
 def V(mdp, theta, mu):
-    """V_theta(mu) = theta^T Phi^T mu / (1 - beta), as defined in Section 2."""
+    """V_theta(mu) = theta^T Phi^T mu / (1 - beta), as defined in Section 3."""
     return float(mdp.phi.reshape(-1, mdp.d).T @ mu.reshape(-1) @ theta) / (1 - mdp.gamma)
 
 
@@ -56,27 +56,27 @@ def main():
     verts = all_deterministic_occupancies(mdp)
     Phi = mdp.phi.reshape(-1, mdp.d)
 
-    # --- Sec. 2: normalisation of the occupancy measure --------------------
-    check("Sec.2  occupancy normalised, sum_sa mu = 1",
+    # --- Sec. 3: normalisation of the occupancy measure --------------------
+    check("Sec.3  occupancy normalised, sum_sa mu = 1",
           np.allclose([m.sum() for m in verts], 1.0, atol=TOL))
 
-    # --- Sec. 2: V_theta(mu) equals the expected discounted return ---------
+    # --- Sec. 3: V_theta(mu) equals the expected discounted return ---------
     th = RNG.normal(size=mdp.d)
     pol = RNG.integers(0, mdp.A, mdp.S)
     mu = occupancy_of_policy(mdp, pol)
     r = mdp.reward(th)
     P_pi = mdp.P[np.arange(mdp.S), pol, :]
     Vpi = np.linalg.solve(np.eye(mdp.S) - mdp.gamma * P_pi, r[np.arange(mdp.S), pol])
-    check("Sec.2  V_theta(mu) = E[sum beta^t r_t]",
+    check("Sec.3  V_theta(mu) = E[sum beta^t r_t]",
           abs(V(mdp, th, mu) - mdp.mu0 @ Vpi) < 1e-8,
           f"{V(mdp, th, mu):.10f} vs {mdp.mu0 @ Vpi:.10f}")
 
-    # --- Sec. 3: ||v||_D = V*_v(rho0) + V*_{-v}(rho0) ----------------------
+    # --- Sec. 4.1: ||v||_D = V*_v(rho0) + V*_{-v}(rho0) ----------------------
     errs = []
     for _ in range(20):
         v = RNG.normal(size=mdp.d)
         errs.append(abs(span_bruteforce(mdp, v, verts) - span_two_solves(mdp, v)))
-    check("Sec.3  ||v||_D = V*_v + V*_{-v} (vs vertex enumeration)",
+    check("Sec.4.1 ||v||_D = V*_v + V*_{-v} (vs vertex enumeration)",
           max(errs) < 1e-6, f"max err {max(errs):.2e}")
 
     # --- Prop. 1: seminorm axioms -----------------------------------------
@@ -107,33 +107,33 @@ def main():
     check("Prop.1 invariance under phi -> A phi, theta -> A^{-T} theta",
           abs(span_two_solves(mdp, v) - span_two_solves(mdp2, np.linalg.inv(Amat).T @ v)) < 1e-6)
 
-    # --- Prop. 1 / App.: A(P) is the exact zero set ------------------------
+    # --- Prop. 1 / App. C: N is the exact zero set ------------------------
     flat = verts.reshape(len(verts), -1)
     D = np.array([Phi.T @ (flat[i] - flat[j]) for i in range(len(flat))
                   for j in range(len(flat))])            # feature difference body, unscaled
     null = np.linalg.svd(D)[2][np.linalg.matrix_rank(D, tol=1e-9):]
     if null.size:
         z = null[0]
-        check("Prop.1 v in A(P)  =>  ||v||_D = 0", span_two_solves(mdp, z) < 1e-8)
+        check("Prop.1 v in N  =>  ||v||_D = 0", span_two_solves(mdp, z) < 1e-8)
     else:
         # Construct a null direction by appending a feature that is constant on M(P):
-        # a potential-shaping column, which Lemma 1 says every mu prices identically.
+        # a potential-shaping column, which the proof of Prop. 1 says every mu prices identically.
         pot0 = RNG.normal(size=mdp.S)
         col = (mdp.gamma * mdp.P @ pot0 - pot0[:, None])[:, :, None]
         mdp3 = TabularMDP(mdp.P, np.concatenate([mdp.phi, col], axis=2), mdp.gamma, mdp.mu0)
         e = np.zeros(mdp3.d); e[-1] = 1.0
-        check("Prop.1 v in A(P)  =>  ||v||_D = 0 (shaping column)",
+        check("Prop.1 v in N  =>  ||v||_D = 0 (shaping column)",
               span_two_solves(mdp3, e) < 1e-8, f"{span_two_solves(mdp3, e):.2e}")
 
-    # --- Lemma 1: potential shaping is constant on M(P) --------------------
+    # --- Prop. 1 proof (App. C): potential shaping is constant on M(P) --------------------
     pot = RNG.normal(size=mdp.S)
     shaped = mdp.gamma * mdp.P @ pot - pot[:, None]       # (S,A): beta E[pot(s')] - pot(s)
     vals = [float(shaped.reshape(-1) @ m.reshape(-1)) for m in verts]
-    check("Lemma 1 c^T Phi^T mu = -(1-beta) rho_0^T Phi_pot for every mu",
+    check("Prop.1 proof: c^T Phi^T mu = -(1-beta) rho_0^T Phi_pot for every mu",
           max(abs(np.array(vals) + (1 - mdp.gamma) * (mdp.mu0 @ pot))) < 1e-9,
           f"spread over vertices {np.ptp(vals):.2e}")
 
-    # --- Prop. 4 (App.): the angular cap's inner minimum --------------------
+    # --- App. A: the angular cap's inner minimum --------------------
     def inner_min_bruteforce(tb, x, alpha, n=400000):
         Z = RNG.normal(size=(n, tb.size))
         Z /= np.linalg.norm(Z, axis=1, keepdims=True)
@@ -155,9 +155,9 @@ def main():
             x = RNG.normal(size=3) * RNG.choice([1.0, -1.0, 4.0])
             f, s = inner_min_formula(tb, x, alpha), inner_min_bruteforce(tb, x, alpha)
             ok &= f <= s + 5e-3                      # sampling can only over-estimate
-    check("Prop.4 piecewise inner minimum over the cap (vs sampling)", ok)
+    check("App.A piecewise inner minimum over the cap (vs sampling)", ok)
 
-    # --- Thm. 4 (App.): cap diameter <= 2 sin(alpha) for alpha <= pi/2 ------
+    # --- auxiliary (not stated in the camera-ready): cap diameter <= 2 sin(alpha) for alpha <= pi/2 ------
     ok = True
     for alpha in (0.2, 0.7, np.pi / 2):
         tb = np.array([1.0, 0.0, 0.0])
@@ -167,14 +167,14 @@ def main():
         Z = Z[Z @ tb >= np.cos(alpha)][:2000]
         dmax = max(np.linalg.norm(Z[:, None] - Z[None], axis=2).max(), 0)
         ok &= dmax <= 2 * np.sin(alpha) + 1e-6
-    check("Thm.4 diam(cap) <= 2 sin(alpha) on [0, pi/2]", ok)
+    check("aux   diam(cap) <= 2 sin(alpha) on [0, pi/2]", ok)
 
-    # --- Thm. 4 (App.): nu(mu) <= nubar ------------------------------------
+    # --- App. A value-gap repair: nu(mu) <= nubar ------------------------------------
     nubar = np.linalg.norm(Phi, axis=1).max() / (1 - mdp.gamma)
-    check("Thm.4 nu(mu) = ||Phi^T mu||/(1-beta) <= ||phi||_{2,inf}/(1-beta)",
+    check("App.A nu(mu) = ||Phi^T mu||/(1-beta) <= ||phi||_{2,inf}/(1-beta)",
           all(np.linalg.norm(Phi.T @ m) / (1 - mdp.gamma) <= nubar + 1e-12 for m in flat))
 
-    # --- Sec. 3: gauge form of the deployed robust objective ---------------
+    # --- Sec. 4.4: gauge form of the deployed robust objective ---------------
     # min_{||delta||_D <= q} delta^T x  ==  -q * gauge_{D_F}(x),  for x in D_F.
     Dbody = D / (1 - mdp.gamma)
     def gauge(x):
@@ -202,20 +202,20 @@ def main():
         rhs = -q * gauge(x)
         worst = max(worst, abs(lhs - rhs))
         ok &= abs(lhs - rhs) < 1e-5
-    check("Sec.3 min_{||delta||_D<=q} delta^T x = -q gauge_{D_F}(x)", ok,
+    check("Sec.4.4 min_{||delta||_D<=q} delta^T x = -q gauge_{D_F}(x)", ok,
           f"max err {worst:.2e}")
 
-    # --- Sec. 3: the penalty is automatically normalised -------------------
+    # --- Sec. 4.4: the penalty is automatically normalised -------------------
     gs = []
     for _ in range(6):
         i, j = RNG.integers(0, len(verts), 2)
         gs.append(gauge(Phi.T @ (flat[i] - flat[j]) / (1 - mdp.gamma)))
-    check("Sec.3 gauge_{D_F}(x) in [0,1] for x in D_F",
+    check("Sec.4.4 gauge_{D_F}(x) in [0,1] for x in D_F",
           all(-1e-7 <= g <= 1 + 1e-6 for g in gs), f"range [{min(gs):.3f}, {max(gs):.3f}]")
 
-    # --- Thm. 3 (App.): angular score lies in [0,1] ------------------------
-    # c_k = max_{theta in Theta(pi_k)} theta^T thetabar, 0 feasible, ||theta||<=1.
-    check("Thm.3 sentinel argument: 0 <= c_k <= 1", True, "0 feasible; Cauchy-Schwarz")
+    # App. A: the angular score c_k = max_{theta in Theta_2(pi_k)} theta^T thetabar
+    # lies in [0,1] because 0 is feasible and ||theta||_2 <= 1 (Cauchy-Schwarz).
+    # That is an argument, not a numerical check, so it is not counted above.
 
     print()
     bad = [n for n, ok_, _ in results if not ok_]

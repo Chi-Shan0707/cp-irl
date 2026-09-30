@@ -11,13 +11,17 @@ the empirical coverage >= gamma pattern holds broadly or was a lucky config.
 
 Run:
     source ~/miniconda3/etc/profile.d/conda.sh && conda activate rlenv
-    PYTHONPATH=. python experiments/run_rlhf_relabeling_robustness.py
+    PYTHONPATH=. python experiments/legacy/run_rlhf_relabeling_robustness.py
 """
 from __future__ import annotations
 
+import os
+import sys
+
 import numpy as np
 
-from experiments.run_rlhf_relabeling_demo import run_once
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from run_rlhf_relabeling_demo import run_once  # noqa: E402  (sibling in legacy/)
 
 CONFIGS = [
     dict(n_responses=6, n_attributes=4, N=40),   # original config

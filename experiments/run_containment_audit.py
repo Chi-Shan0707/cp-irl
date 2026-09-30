@@ -213,7 +213,7 @@ def run_once(env_name, seed, N_train, N_val, N_test, fiber_diameter=2.0,
             ref_value = occ_value(mdp, mu_ref, theta_t)
             safe_reference_dominance += int(safe_value + 1e-6 >= ref_value)
 
-            # E3: ceiling theorem, Reg_{theta_t}(pi_thetabar) <= ||theta_t-theta_bar||_D.
+            # Prop. 1 regret bound (the "ceiling"), Reg_{theta_t}(pi_thetabar) <= ||theta_t-theta_bar||_D.
             # MUST use the RAW (not scale-matched) theta_t here: regret is
             # scale-SENSITIVE (Reg_{c*theta} = c*Reg_theta), unlike the
             # scale-identifiability question containment above is isolating.
@@ -306,7 +306,7 @@ def main():
 
     total_test = sum(r["n_test"] for r in all_rows)
     total_viol = sum(r["ceiling_violations"] for r in all_rows)
-    print(f"\n=== E3: ceiling theorem violations: {total_viol}/{total_test} "
+    print(f"\n=== Prop. 1 regret-bound (ceiling) violations: {total_viol}/{total_test} "
           "(expect 0) ===\n")
 
     print("=== Stage II: fiber-width containment and reference safety ===")

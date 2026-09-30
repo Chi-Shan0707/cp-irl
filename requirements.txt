@@ -3,6 +3,6 @@ numpy>=2.2,<3
 scipy>=1.15,<2
 cvxpy>=1.7,<2
 matplotlib>=3.10,<4
-joblib>=1.5,<2
 pytest>=9,<10
-torch>=2.0
+# Only experiments/legacy/run_ipm_critic_probe.py needs torch:
+# torch>=2.0

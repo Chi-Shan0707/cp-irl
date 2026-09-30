@@ -12,19 +12,13 @@ c_k (here, the calibration scores from irl/feasible_set.py::c_k), the empirical 
 F_hat satisfies, with probability >= 1-delta over the draw of the N scores,
     sup_x |F_hat(x) - F(x)| <= eps(N, delta) := sqrt(log(2/delta) / (2N))
 uniformly over x (Dvoretzky, Kiefer & Wolfowitz 1956; tight constant per Massart
-1990). To guarantee the TRUE gamma-quantile of the score's distribution is covered
-with confidence >= 1-delta, it suffices to take the empirical (gamma + eps)-quantile
-(clipped to 1) as a conservative upper bound: since F_hat(x) >= F(x) - eps uniformly,
-the point where F_hat first reaches gamma+eps has true CDF value >= gamma, i.e. is at
-or below the true gamma-quantile... more precisely: with probability >= 1-delta,
-F(q_hat) >= F_hat(q_hat) - eps = (gamma+eps) - eps = gamma, so the empirical
-(gamma+eps)-quantile q_hat upper-bounds the true gamma-quantile of scores that are
-LOWER (since we want a threshold BELOW which the true gamma-quantile lies, and we
-need C(theta_bar, alpha) to be big enough to cover c_new with probability gamma, we
-need alpha = arccos(the gamma-quantile of the DISTRIBUTION of c_k), so we want a
-threshold that UNDER-estimates c's gamma-quantile => use the empirical
-(gamma - eps)-quantile, clipped to >= 0, as the DKW-conservative threshold on c
-itself (smaller c-threshold => larger alpha => more conservative/wider cap)).
+1990). The cap C(theta_bar, alpha) covers a fresh score when c_new >= cos(alpha),
+so we need a threshold c_tau with P(c >= c_tau) >= gamma, i.e. a lower estimate of
+the (1 - gamma)-quantile of the score distribution. Under the DKW event,
+F(x) <= F_hat(x) + eps uniformly, so taking the empirical order statistic whose
+left mass is at most (1 - gamma) - eps guarantees P(c < c_tau) <= 1 - gamma. A
+smaller c_tau means a larger alpha = arccos(c_tau), i.e. a more conservative
+(wider) cap. See dkw_quantile_threshold for the exact rank and the sentinel.
 """
 from __future__ import annotations
 

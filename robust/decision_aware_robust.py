@@ -6,7 +6,7 @@ CPIRL_FIRST_PRINCIPLES.md Sec 5.
     C_q(theta_bar) := {theta : ||theta - theta_bar||_D <= q}
 
 is a ball in the span seminorm ||.||_D (conformal/decision_metric.py), which is
-UNBOUNDED along the behaviorally-null subspace A(P) (shaping and every other
+UNBOUNDED along the behaviorally-null subspace N (shaping and every other
 annihilator direction). Consequently the raw max-min value criterion
 max_mu min_{theta in C_q} theta^T Phi^T mu is -infinity: an adversary can always
 add an unboundedly large multiple of a null direction. This is not a modeling
@@ -14,16 +14,20 @@ bug -- it is the correct signal that max-min VALUE is the wrong criterion once
 the uncertainty set is expressed in the metric the problem actually supports.
 
 The fix (Sec 5.2(i)) is to work with occupancy measures RELATIVE to a fixed
-reference occupancy mu_ref in M(P) (e.g. the point estimate's own optimal
-occupancy): every null direction contributes an IDENTICAL constant to
+reference occupancy mu_ref in M(P) (e.g. the calibration population's mean
+occupancy, mean_population_occupancy; NOT the point estimate's own optimal
+occupancy, which is optimal for every q and makes the problem degenerate --
+paper Sec. 4.4): every null direction contributes an IDENTICAL constant to
 <theta, Phi^T mu> and <theta, Phi^T mu_ref>, so it cancels exactly and the
 centered objective is finite. The inner minimization then has the closed form
 
-    min_{||v||_D <= q} <theta_bar + v, x> = <theta_bar, x> - q * gauge_D(x),
+    min_{||v||_D <= q} <theta_bar + v, x> = <theta_bar, x> - (1-gamma) q * gauge_D(x),
     x := Phi^T(mu - mu_ref),
 
 where gauge_D is the Minkowski gauge of the occupancy-difference body
-D = Phi^T(M(P) - M(P)) (the dual unit ball of ||.||_D). gauge_D(x) itself has
+D = Phi^T(M(P) - M(P)) (the dual unit ball of ||.||_D up to scale: the paper's
+D_F carries an extra 1/(1-gamma), so with this unscaled D and unscaled x the
+penalty radius becomes (1-gamma) q, as in the objective below). gauge_D(x) itself has
 an LP characterization -- x/t in D for the smallest t >= 0 such that
 x = Phi^T(mu' - nu') for some mu', nu' in t*M(P) -- so the whole robust problem
 below is a SINGLE LP jointly over (mu, mu', nu', t): no SOCP, no case-split, no

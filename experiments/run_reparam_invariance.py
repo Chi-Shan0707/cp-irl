@@ -46,7 +46,9 @@ def rotated_rescaling(d: int, kappa: float, rng: np.random.Generator) -> np.ndar
     Symmetric positive-definite, so A = A^T and A^{-T} = A^{-1} -- a
     representative, easily-invertible member of the reparametrization group
     GL_d (full generality is already covered by the unit test's random GL_d
-    matrix; this family isolates conditioning as the single varying factor).
+    matrix; this family varies the transform only through its conditioning. Note that
+    run_one reseeds per (seed, kappa), so the MDP, center and demonstrators are also
+    redrawn at each kappa; the before/after comparison within a run is what is exact).
     """
     if kappa == 1.0:
         return np.eye(d)

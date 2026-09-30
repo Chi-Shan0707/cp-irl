@@ -1,25 +1,30 @@
 cff-version: 1.2.0
 message: "If you use this code or the accompanying paper, please cite it as below."
 type: software
-title: "CP-IRL: Conformal Prediction for Inverse Reinforcement Learning"
+title: "CP-IRL: Conformal Reward Sets for Inverse Reinforcement Learning"
 authors:
   - family-names: "Chi"
     given-names: "Yuhan"
-    affiliation: "Fudan University"
+    affiliation: "School of Mathematical Sciences, Fudan University"
     email: "yhchi25@m.fudan.edu.cn"
 repository-code: "https://github.com/Chi-Shan0707/cp-irl"
 url: "https://chi-shan0707.github.io/cp-irl/"
 license: MIT
-version: "0.1.0"
-date-released: 2026-08-05
+version: "1.0.0"
+date-released: 2026-09-27
 preferred-citation:
-  type: article
-  title: "Calibrating What Behavior Identifies: Conformal Reward Sets for Inverse Reinforcement Learning"
+  type: conference-paper
+  title: "Calibrating What Behavior Can Identify: Conformal Reward Sets for Inverse Reinforcement Learning"
   authors:
     - family-names: "Chi"
       given-names: "Yuhan"
-      affiliation: "Fudan University"
+      affiliation: "School of Mathematical Sciences, Fudan University"
       email: "yhchi25@m.fudan.edu.cn"
+  collection-title: "Physical Understanding for Decision-Making: Bridging Foundation Models and Reliable Agents (PUDM), NeurIPS 2026 Workshop"
   year: 2026
-  url: "https://github.com/Chi-Shan0707/cp-irl"
-  notes: "Manuscript in preparation / workshop submission; see paper/main.pdf in the repository for the current draft."
+  month: 12
+  url: "https://github.com/Chi-Shan0707/cp-irl/blob/main/paper/main.pdf"
+  notes: >-
+    Accepted as a poster. The workshop is held in Sydney, Australia, 11-12
+    December 2026. The submitted (double-blind) version is preserved at
+    paper/main_full9_revised.tex.
