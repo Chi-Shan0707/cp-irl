@@ -1,0 +1,128 @@
+name: CI
+
+# The repository previously had no workflows at all, so nothing checked that the
+# test suite, the paper build, the recorded figures or the App. C identities still
+# held after a commit. These three jobs mirror the Makefile entry points, so a
+# green run here is the same evidence `make test` / `make paper` / `make figures`
+# give locally.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'   # matches requirements.txt
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 436 tests, ~3.5 min in the rlenv environment.
+      - name: Run the test suite
+        run: make test
+
+  paper:
+    name: Paper build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # environ and lineno come from latex-extra, natbib/geometry from base,
+      # microtype and the font set from fonts-recommended/extra.
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-fonts-extra \
+            texlive-science
+
+      - name: Build the PDF (4 passes, runs bibtex)
+        run: make paper
+
+      # `make paper` uses -halt-on-error, so a broken build already fails the job.
+      # A silently undefined citation or reference does not, so check for it.
+      - name: Fail on undefined references or citations
+        run: |
+          set -euo pipefail
+          if grep -nE 'LaTeX Warning: (Citation|Reference).*undefined|There were undefined references' paper/main.log; then
+            echo "::error::paper/main.tex has undefined references or citations"
+            exit 1
+          fi
+          test -s paper/main.pdf
+          echo "paper/main.pdf built clean"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paper-main-pdf
+          path: paper/main.pdf
+          if-no-files-found: error
+
+  figures:
+    name: Figures and identity audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Re-derives the 14 displayed identities in App. C from scratch, so an error
+      # in the library cannot hide an error in the paper.
+      - name: Numerical audit of the App. C identities
+        run: make verify
+
+      # Reads the three committed result JSONs, which are the recorded numbers
+      # behind Table 2 and both figures.
+      #
+      # This only asserts that the figures still regenerate. It deliberately does
+      # NOT byte-compare them against the committed PNGs: fig1 is reproducible but
+      # fig2's raster output drifts with the matplotlib version, so a byte check
+      # would fail on a perfectly good build.
+      - name: Regenerate both figures from the recorded JSONs
+        run: make figures
+
+      - name: Confirm every figure was produced
+        run: |
+          set -euo pipefail
+          for f in fig1_metric fig2_identification_frontier; do
+            for ext in pdf png; do
+              test -s "paper/figures/${f}.${ext}" \
+                || { echo "::error::paper/figures/${f}.${ext} was not regenerated"; exit 1; }
+            done
+          done
+          ls -l paper/figures/
