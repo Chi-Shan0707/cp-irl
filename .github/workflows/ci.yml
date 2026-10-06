@@ -38,7 +38,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 436 tests, ~3.5 min in the rlenv environment.
+      # Includes the independent exact-cone supplement checks.
       - name: Run the test suite
         run: make test
 
@@ -105,6 +105,9 @@ jobs:
       # in the library cannot hide an error in the paper.
       - name: Numerical audit of the App. C identities
         run: make verify
+
+      - name: Run the small post-acceptance exact-cone supplement
+        run: make toy
 
       # Reads the three committed result JSONs, which are the recorded numbers
       # behind Table 2 and both figures.

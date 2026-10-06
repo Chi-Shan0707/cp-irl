@@ -13,7 +13,7 @@ Audit date: 2026-08-18.
 | Claim in the paper | Audit result and action |
 |---|---|
 | CIO calibrates an uncertainty set that intersects the next inverse-feasible set. | Supported by Lin, Delage, and Chan (2024), including its finite-sample coverage theorem. Retained. |
-| CIO provides a diameter or Hausdorff-width guarantee for the full inverse-feasible set. | Not supported by the CIO paper. The old attribution was removed. The normalized inverse-fiber width assumption is now explicitly presented as CP-IRL's additional identification condition. |
+| CIO provides a diameter or Hausdorff-width guarantee for the full inverse-feasible set. | **Clarified 2026-10-06:** CIO explicitly *assumes* a Euclidean inverse-set diameter bound in Assumption 2 and uses η in Theorem 3; it does not derive or estimate the bound generally. CP-IRL adapts that assumption to normalized span geometry. The earlier audit wording inadequately distinguished an assumed bound from a proved guarantee. |
 | Data-driven and predict-then-calibrate robust optimization solve the same latent inverse problem as CIO. | Too broad. The related-work text now distinguishes uncertainty around observed or predicted objective coefficients from CIO's latent inverse-feasible-set setting. |
 | Existing feasible-reward-set IRL papers all use the same sample model or PAC assumptions. | Not supported as a blanket statement. Replaced by a narrower statement that the papers use different observation models and assumptions; the generative-model and multiple-expert claim is attributed specifically to Poiani et al. (2024). |
 | Rectangularity and Bayesian ambiguity are the same robust-MDP device. | Incorrect conflation. Rectangularity is cited to Iyengar, Nilim and El Ghaoui, and Wiesemann et al.; Petrik and Russel (Bayesian ambiguity sets) was later dropped from the text and is no longer cited. |
@@ -52,3 +52,14 @@ Scholar; no LaTeX was rebuilt.
   "downstream decision" clause. MaxEnt IRL (Ziebart et al., 2008), Bayesian IRL
   (Ramachandran and Amir, 2007) and Objectworld (Levine et al., 2011) are used
   without a citation.
+
+## Post-acceptance addendum (2026-10-06)
+
+Checked the original NeurIPS 2024 CIO paper, not just its abstract:
+§3.1.1 Assumption 2 (printed p. 3) assumes inverse-set diameter ≤ η; §4 and
+Theorem 2 certify intersection; Theorem 3 (printed p. 7) explicitly uses η.
+The paper now credits these ingredients and limits its adaptations to the
+IRL geometry, computable score, normalized radius bridge and specified robust
+prescription. It does not claim CIO leaves identifiability implicit, or that
+one-shot inverse-feasible sets are necessarily thin. See
+[POST_ACCEPTANCE_CHANGES.md](POST_ACCEPTANCE_CHANGES.md).

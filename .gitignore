@@ -33,6 +33,7 @@ paper/supplementary.zip
 !experiments/reparam_invariance_results.json
 !experiments/containment_audit_results_v2.json
 !experiments/center_validity_results.json
+!experiments/exact_cone_toy_results.json
 
 # OpenReview reviews and decision are restricted to Program Chairs, Reviewers and
 # Authors, so they are kept locally and not published with the repository.

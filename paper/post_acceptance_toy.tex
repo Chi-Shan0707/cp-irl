@@ -1,0 +1,132 @@
+\section{Post-acceptance supplement: an exact cone diagnostic}
+\label{app:exact-toy}
+
+\textit{Added 6 October 2026, after acceptance; this appendix was not part of
+the reviewed submission.} This small construction exercises the containment
+bridge with a computed certificate and separates its conservatism from that
+of a ball-shaped uncertainty set. It changes none of E1--E3 or Table~\ref{tab:regret}.
+
+\paragraph{An exactly solvable geometry.}
+There is one self-looping state, discount $\beta=0.9$, and $m$ actions with
+features $p_j=(\cos(2\pi j/m),\sin(2\pi j/m))$, $j=0,\ldots,m-1$;
+$m\in\{4,16\}$. Occupancies are action distributions and
+$V_\theta(\mu)=\sum_j\mu_j p_j^\top\theta/(1-\beta)$.
+Central symmetry gives
+\[
+ \Dnorm{\theta}=\frac{2\max_j p_j^\top\theta}{1-\beta}.
+\]
+Write $h=\pi/m$. The Bellman cone for action $j$ is the angular sector
+$[2jh-h,2jh+h]$. Inside it, $p_j$ attains the maximum above. Consequently
+$F^\circ(j)$ is exactly the line segment with endpoints
+\[
+ u_j^\pm=\frac{1-\beta}{2\cos h}
+       \big(\cos(2jh\pm h),\sin(2jh\pm h)\big).
+\]
+Indeed, intersecting the sector with $p_j^\top\theta=(1-\beta)/2$ gives
+precisely that segment. Thus, for any fixed center, convexity of the norm yields
+\[
+ s^{\max}(j)=\max_{\sigma\in\{-,+\}}
+                 \Dnorm{u_j^\sigma-\bar\theta^\circ},
+ \qquad
+ \operatorname{diam}_{\mathcal D}F^\circ(j)
+ =\Dnorm{u_j^+-u_j^-}=2\tan h.
+\]
+For the last equality, $u_j^+-u_j^-=(1-\beta)\tan(h)\,p_j^\perp$, and
+$p_j^\perp$ is an action feature because $m$ is divisible by four. This is a
+certificate for \emph{every} action's entire normalized cone, obtained from the
+known MDP, not a maximum over sampled latent rewards. The example needs no
+external side information. Endpoint maxima suffice here because each
+normalized cone is a segment; we claim no general efficient solver for
+$s^{\max}$.
+
+\paragraph{Protocol and independent checks.}
+Fix the unit-span center $\bar\theta^\circ=((1-\beta)/2,0)$ and the uniform
+reference $\mu_{\mathrm{ref},j}=1/m$ before drawing any calibration or test
+data. This isolates the certificate and is not a comparison of IRL estimators.
+For $m=16$, draw the optimal action $J$ from $\{-1,0,1\}$ modulo $m$ with
+probabilities $(1/4,1/2,1/4)$. Draw $U$ uniformly on $[-0.45,0.45]$ and
+span-normalize the reward direction at angle $2\pi(J+U)/m$. These rewards
+have unique optimal action $J$. For the $m=4$ control, use $J=0$ always and
+the same continuous within-cone distribution. Use 100 independent trials,
+each with 20 calibration rewards and 100 independent test rewards, target
+$\gamma=0.8$, and master seed 20261006. Calibration and test draws use separate
+random streams. All reported empirical rates average trial-level rates;
+test points sharing a calibrated radius are not treated as independent trials.
+
+Compute three calibration quantiles on the same split: $q_\gamma$ from the
+minimum-cone LP score; $q_\gamma^{\max}$ from the exact endpoint maximum;
+and the diagnostic oracle $q_\gamma^{\mathrm{oracle}}$ from the distances of
+the \emph{latent calibration rewards}. Only the oracle uses latent calibration
+rewards; no method uses test rewards to set a radius. Pointwise ordering gives
+\[
+ q_\gamma^{\mathrm{oracle}}\le q_\gamma^{\max}
+ \le R=\min\{2,2q_\gamma+\eta\}.
+\]
+The oracle is not a deployable IRL method. The script checks the analytic cone
+endpoints and compares the library's cone score with an independent SciPy LP.
+It also audits each deployed policy's worst-case value with an independent
+two-variable inner LP. Tests compare the endpoint support values with LPs over
+all Bellman inequalities and the exact span-normalization equality.
+
+\paragraph{A positive certificate.}
+For $m=16$, $\eta=2\tan(\pi/16)=0.397825$. All 100 calibration splits give
+the same $q_\gamma$, $q_\gamma^{\max}$ and $R$, up to numerical precision
+(Table~\ref{tab:exact-toy}). Both robust programs select action 0 to solver
+tolerance, whose reference-relative worst-case value over a ball of radius
+$r<1$ is $(1-r)/2$. To see optimality, central symmetry implies
+$D_F=2\operatorname{conv}\{p_j\}/(1-\beta)$, so the gauge of the feature
+difference for action 0 is $1/2$. Every action distribution has gauge at most
+$1/2$ and center value at most that gauge, giving the upper bound $(1-r)/2$,
+attained by action 0. Thus $R<1$ is accompanied here by an independently
+verified \emph{positive} worst-case advantage and a departure from the reference.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Post-acceptance diagnostic. $J_R$ and $J_{\max}$ are worst-case
+advantages over the uniform reference using radii $R$ and $q_\gamma^{\max}$,
+respectively. The displayed radii and values are common to all 100 splits to
+the shown precision; they are not performance comparisons with a point estimator.}
+\label{tab:exact-toy}
+\begin{tabular}{@{}rrrrrrr@{}}
+\toprule
+$m$ & $\eta$ & $q_\gamma$ & $q_\gamma^{\max}$ & $R$ & $J_R$ & $J_{\max}$ \\
+\midrule
+16 & 0.397825 & 0.191342 & 0.581596 & 0.780508 & 0.109746 & 0.209202 \\
+4 & 2 & 0 & 1 & 2 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For $m=16$, Stage-I containment is 0.5039; exact-maximum and bridge containment
+are both 1.0000 on the 10,000 held-out draws. Oracle containment is 0.8173
+(standard error 0.0087 across 100 independent trial means); its mean radius is
+0.428040. The endpoint score is discrete and the population lies inside its
+cones, so its conservative 1.0000 containment should not be read as evidence
+of tight calibration. Reference dominance holds on all test draws. These
+rates are descriptive checks; the certificate is the analytic cone bound and
+the theorem, not observed test coverage. Both robust radii select the same
+action, so the larger $J_{\max}$ is a tighter certificate, not a measured
+policy-performance gain.
+
+\paragraph{A set-shape control.}
+For $m=4$, the observed action is always 0, $q_\gamma=0$, and the full
+normalized cone has diameter 2. Its exact maximum-distance score is 1, so
+even exact-maximum calibration reaches the ball's zero-advantage threshold.
+The implementation chooses the reference at that threshold; at $r=1$ other
+optimizers can tie, whereas at $R=2$ all optimizers are reference-feature-equivalent.
+Nevertheless, optimizing directly over $F^\circ(0)$ gives worst-case advantage
+$1/2$: every reward in that segment gives action 0 value $1/2$, and the uniform
+reference has value zero. A two-endpoint robust LP verifies this value without
+observing latent rewards. This diagnostic uses the stated population of
+action-0 demonstrators; it is not a distribution-free replacement for the
+population-calibrated method. It shows that a wide reward cone and a degenerate
+enclosing ball do not imply that all safe decision rules are uninformative.
+
+\paragraph{Reproduction and limits.}
+\texttt{make toy} runs \texttt{experiments/run\_exact\_cone\_toy.py}; configuration,
+analytic endpoints, scores, occupancies and every trial are stored in
+\texttt{experiments/exact\_cone\_toy\_results.json}. This is a one-state,
+two-feature existence example with a fixed center and reference. It neither
+certifies the widths in E1--E3 nor establishes scalability, improvement over
+point-estimate IRL, or robustness to estimated policies or dynamics.

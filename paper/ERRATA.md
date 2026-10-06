@@ -1,13 +1,25 @@
-# Errata: reviewed version vs. camera-ready
+# Errata and revision history
 
 The version reviewed on OpenReview is `paper/main_full9_revised.tex`. Its PDF,
 `paper/main_full9_revised.pdf`, is byte-identical to the PDF on OpenReview
 (SHA-256 `79fd2a882937df7396c370db13e06e1a58c7737903f09de4bd8fdae5e44f5e45`).
 
-The camera-ready is `paper/main.tex` / `paper/main.pdf`. Apart from the author
-block and the workshop notice line, it differs from the reviewed version only
-in the corrections below, all made on 2026-09-30. None of them changes a
-theorem, a proof, or a reported experimental result.
+## 2026-10-06: post-acceptance author revision
+
+`paper/main.tex` / `paper/main.pdf` now contain a visibly dated author revision.
+It corrects attribution to CIO, limits the degeneracy interpretation, repairs
+two proof details without changing the theorems, and adds a separately labelled
+exact-cone toy experiment in Appendix D. The new appendix was **not part of the
+reviewed submission**. See [POST_ACCEPTANCE_CHANGES.md](POST_ACCEPTANCE_CHANGES.md)
+for the precise changes, version hashes, validation and reproduction commands.
+The accepted submission above and original E1–E3 data remain unchanged.
+
+## 2026-09-30: camera-ready corrections
+
+The camera-ready at Git commit `4553b426876222a6b16cd0029bf954425a806bd0`,
+before the October revision, differed from the reviewed version only by its
+author/workshop notice and the corrections below. Those September corrections
+did not change a theorem, a proof, or a reported experimental result.
 
 ## Mathematical correction
 

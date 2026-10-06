@@ -46,7 +46,12 @@ from envs.mdp import TabularMDP
 
 @dataclass(frozen=True)
 class SafeRobustResult:
-    """Output of the two-stage intersection-to-safety pipeline."""
+    """Output of the two-stage intersection-to-safety pipeline.
+
+    ``nontrivial`` is the legacy name for ``containment_radius < 1`` only.
+    It is a necessary threshold check, not evidence of positive worst-case
+    advantage or of a departure from the reference. Check those separately.
+    """
 
     occupancy: np.ndarray
     worst_case_advantage: float
