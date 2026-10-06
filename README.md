@@ -77,6 +77,39 @@ a fixed uniform reference. A four-action control shows that the enclosing
 ball can be uninformative even when the full feasible cone supports an
 improvement. This is a limited existence example, not a general performance gain.
 
+## The core idea
+
+**Calibrate in behavior-relevant reward geometry; distinguish intersection from
+containment; use an identification certificate before prescribing safely.**
+
+![Exact reward geometry: the calibrated span ball intersects the feasible cone but misses the latent reward; a certified width expands it to a containing ball.](paper/figures/core_geometry.svg)
+
+**1–2. From behavior to reward containment.** An observed optimal policy defines a
+feasible reward cone. A split-conformal quantile of the nearest-cone distance
+certifies intersection, not containment of the latent reward. With a certified
+unit-span fiber diameter η, the radius `R = min{2, 2q + η}` gives marginal
+containment at the target level. The plot uses the exact 16-action geometry of
+Appendix D: `w = 2θ/(1−β)` and the span norm is `max_j p_jᵀw`; the balls are
+polygons. Blue: calibrated ball; green: expanded ball.
+
+![Reference-relative robust advantage versus radius in the exact toy: positive at R = 0.781 and zero from R = 1 onward, with the general guarantee and its scope.](paper/figures/core_prescription.svg)
+
+**3. From containment to a decision certificate.** Maximize worst-case advantage
+over the containment ball relative to a feasible reference policy. Under the
+paper's assumptions—shared known MDP, fully observed exact-optimal policies,
+nonnull rewards and center, exchangeable calibration, and a valid width
+certificate—the resulting decision is no worse than the reference with marginal
+probability at least γ. For this ball prescription, `R < 1` is necessary, not
+sufficient, for positive worst-case advantage. The plotted curve is specific to
+the toy, not a universal performance law; other reward-set shapes can avoid this
+ball's conservatism.
+
+These two explanatory figures were added after acceptance. They illustrate the
+revised theory and the separately labelled toy; they are not new benchmark
+results. [Vector PDFs](paper/figures/core_geometry.pdf) ·
+[Decision figure PDF](paper/figures/core_prescription.pdf) ·
+[Reproduce with `make overview`](paper/make_core_figures.py) (no experiments).
+
 ## What's here
 
 - tabular MDP, gridworld, and Objectworld environments

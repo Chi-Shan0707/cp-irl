@@ -126,3 +126,31 @@ above passed. The revised PDF builds to 16 pages with no undefined references,
 undefined citations, or overfull boxes. The dated notice and Appendix D table
 were checked in the rendered PDF. Accepted-artifact hashes match the table
 above; original E1–E3 JSONs and figures have no diff.
+
+## 4. Public explanation and overview figures
+
+The README, project page and Chinese math walkthrough now match the revised
+attribution, guarantee scope, experiment accounting and separately labelled
+Appendix D. The accepted submission remains linked alongside the author revision.
+
+Two new web overview figures (`figures/core_geometry.*` and
+`figures/core_prescription.*`) are explanatory additions after acceptance, not
+figures from the reviewed paper. They do not replace original Figures 1–2 and
+are not inserted into the accepted PDF. `make overview` generates SVG, PDF and
+PNG from `make_core_figures.py` without running experiments.
+
+- Geometry uses the exact Appendix D 16-action MDP in coordinates
+  `w = 2θ/(1−β)`, for which the occupancy-span norm is `max_j p_jᵀw`.
+  The balls are polygons. A separate SciPy LP computes the nearest-cone
+  distance; assertions check unit normalization, the latent-reward miss,
+  the exact fiber diameter, and containment of both fiber endpoints.
+- The decision curve `G(R) = max{0, (1−R)/2}` is specific to this MDP,
+  action-0 center and uniform reference. The plotting source derives it
+  from the gauge of the action-feature polygon. It is labelled as an
+  example, distinct from the general `R ≥ 1` degeneracy statement.
+- Captions state the assumptions and marginal nature of coverage, and
+  distinguish the sphere/ball prescription from other reward-set shapes.
+  Exported figures are visually checked for readable, separated labels;
+  text, including axis labels, ticks, legends and annotation text, also
+  receives a bounding-box overlap check. Local browser checks at 1280 px and
+  390 px verified that the SVGs load and the page has no horizontal overflow.

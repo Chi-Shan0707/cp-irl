@@ -129,3 +129,6 @@ jobs:
             done
           done
           ls -l paper/figures/
+
+      - name: Regenerate the post-acceptance overview figures
+        run: make overview

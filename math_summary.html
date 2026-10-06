@@ -199,6 +199,7 @@
     <p class="eyebrow">CP-IRL 论文中文解读</p>
     <h1>校准行为真正能识别的奖励信息</h1>
     <p class="subtitle">原文：<a href="paper/main.pdf">Calibrating What Behavior Can Identify: Conformal Reward Sets for Inverse Reinforcement Learning</a></p>
+    <p class="subtitle">2026 年 10 月 6 日接收后修订；<a href="paper/main_full9_revised.pdf">已接收投稿版</a>保持不变。<a href="paper/POST_ACCEPTANCE_CHANGES.md">修订与新增实验记录</a>。</p>
     <p class="subtitle">按“问题 → 几何 → 校准 → 部署 → 保证边界 → 实验结论”的顺序展开。证明只保留关键直觉和必要推导，数值全部取自论文。</p>
   </header>
 
@@ -526,17 +527,17 @@
       <div class="math-card">
         \[F^\circ(\pi)=\{\theta\in K(\pi):\Dnorm{\theta}=1\}.\]
       </div>
-      <p>若有外部知识能够认证每个部署 fiber 的射影直径不超过 \(\eta\)，且每个潜在奖励行为非零（\(\Dnorm{\hat\theta}>0\)），则 LP 分数给出</p>
+      <p>若已知几何或额外识别信息能够认证每个部署 fiber 的射影直径不超过 \(\eta\)，且每个潜在奖励行为非零（\(\Dnorm{\hat\theta}>0\)），则 LP 分数给出</p>
       <div class="math-card">
         \[R=\min\{2,\,2q_\gamma+\eta\},\qquad
         \P[\Dnorm{\hat\theta_{\mathrm{new}}^\circ-\bar\theta^\circ}\le R]\ge\gamma.\]
       </div>
       <p>因子 \(2q_\gamma\) 来自两步：先找到离中心不超过 \(q_\gamma\) 的锥内见证，再把见证归一化到单位跨度，至多再移动 \(q_\gamma\)。若 \(q_\gamma\ge1\)，见证可能是零奖励，只能退回通用半径 \(R=2\)。</p>
-      <p>换个角度看：若改用<strong>最大</strong>距离 \(s^{\max}(\pi):=\max_{u\in F^\circ(\pi)}\Dnorm{u-\bar\theta^\circ}\) 作分数，同一 conformal 论证只凭假设 1 就直接给出包含；但这是凸函数在非凸集上的最大化，论文不求解它。在假设 2 下逐点有 \(s^{\max}\le 2s+\eta\)，而单调递增变换与次序统计量可交换，故 \(q^{\max}_\gamma\le 2q_\gamma+\eta\)。所以 \(\eta\) 不是流程运转所需的信息，而是把非凸分数换成线性规划所付出的代价：在 \(F^\circ\) 上取最小可去掉因子 2（\(R=\min\{2,q_\gamma+\eta\}\)），取最大则连 \(\eta\) 也可去掉，但两者都非凸。</p>
+      <p>换个角度看：若改用<strong>最大</strong>距离 \(s^{\max}(\pi):=\max_{u\in F^\circ(\pi)}\Dnorm{u-\bar\theta^\circ}\) 作分数，在假设 1 和潜在奖励非零条件下，同一 conformal 论证直接给出包含。一般情形是凸函数在非凸集上的最大化；接收后新增的附录 D 只在一个可解析的两维特例中精确求解它。在假设 2 下逐点有 \(s^{\max}\le 2s+\eta\)，而单调递增变换与次序统计量可交换，故 \(q^{\max}_\gamma\le 2q_\gamma+\eta\)。因此 LP 分数的包含桥需要 \(\eta\) 证书；若能计算精确最大分数，则可绕过该桥：在 \(F^\circ\) 上取最小可去掉因子 2（\(R=\min\{2,q_\gamma+\eta\}\)），取最大则连 \(\eta\) 也可去掉，但两者都非凸。</p>
 
       <div class="callout warning">
         <div class="title">\(\eta\) 不能靠同一条 conformal 定理凭空得到</div>
-        <p>它需要侧信息、多环境观测、主动比较或其他识别结构。完全没有额外信息时，唯一通用认证是 \(\eta=2\)，虽然正确，却通常没有处方价值。</p>
+        <p>它不能由分数排序本身推出；可以来自已知 MDP 的精确锥几何（附录 D），或额外识别结构。若只用不依赖具体锥的通用界，则 \(\eta=2\)，虽然正确，却通常没有处方价值。</p>
       </div>
     </section>
 
@@ -554,7 +555,7 @@
         [V_\theta(\mu)-V_\theta(\mu_{\mathrm{ref}})].
         \]
       </div>
-      <p>给所有策略加同一常数的方向会在差值中抵消。实验以校准演示者的平均占用测度为参考。</p>
+      <p>给所有策略加同一常数的方向会在差值中抵消。原始实验以校准演示者的平均占用测度为参考；新增附录 D 固定均匀策略为参考。</p>
 
       <h3>8.3 支持函数—规范函数对偶给出 LP</h3>
       <p>沿用第 5.1 节的差分体 \(\DF=\Phi^\top(\M(P)-\M(P))/(1-\beta)\)，并令 \(x=\Phi^\top(\mu-\mu_{\mathrm{ref}})/(1-\beta)\)，则</p>
@@ -623,7 +624,7 @@
       </table>
 
       <h3>9.1 为什么这不再是“把两个模块拼起来”？</h3>
-      <p>占用特征多面体 \(\M(P)\) 是统一起点：奖励是其上的线性函数；\(K(\pi)\) 是解释该策略的 Bellman 可行锥（初始分布全支撑时即策略点处的法锥）；差分体 \(\DF=\Phi^\top(\M(P)-\M(P))/(1-\beta)\) 的支持函数给出校准距离 \(\Dnorm{\cdot}=h_{\DF}\)；同一差分体的极对偶规范给出鲁棒惩罚。真正需要另加的只有可辨识性条件 \(\eta\)，而论文把它写在定理前提里，不再隐藏。</p>
+      <p>占用特征多面体 \(\M(P)\) 是统一起点：奖励是其上的线性函数；\(K(\pi)\) 是解释该策略的 Bellman 可行锥（初始分布全支撑时即策略点处的法锥）；差分体 \(\DF=\Phi^\top(\M(P)-\M(P))/(1-\beta)\) 的支持函数给出校准距离 \(\Dnorm{\cdot}=h_{\DF}\)；同一差分体的极对偶规范给出鲁棒惩罚。包含桥还需要可辨识性条件 \(\eta\)。CIO 已在 Assumption 2 引入逆可行集直径界，并在 Theorem 3 使用它；本文将其适配到单位跨度几何。</p>
 
       <h3>9.2 理想分数与可解分数的取舍</h3>
       <p>若直接计算到单位跨度 fiber 的距离，包含半径可缩成 \(q_\gamma+\eta\)，但约束 \(\Dnorm{\theta}=1\) 非凸。当前 LP 分数允许锥内任意尺度，因此付出 \(2q_\gamma\) 的归一化代价。这个常数是计算性与统计半径之间的明确交换。</p>
@@ -631,14 +632,14 @@
 
     <section id="experiments">
       <h2><span class="num">10</span>实验究竟说明什么？</h2>
-      <p>这里刻意只保留三个机制实验。主审计覆盖 3 个环境、2 个中心占用跨度非零的估计器（MaxEnt 与 Bayesian）、10 个种子；每次运行各有 20 个训练、20 个校准、20 个测试演示者，共 60 次运行和 1,200 个测试奖励。置信区间以 30 个环境—种子块为独立重复单位，先平均共享同一批数据的两个估计器，再计算 95% Student-\(t\) 区间。</p>
+      <p>原始稿报告三个机制实验；接收后附录 D 增加一个单独标注的小型诊断。主审计覆盖 3 个环境、2 个中心占用跨度非零的估计器（MaxEnt 与 Bayesian）、10 个种子；每次运行各有 20 个训练、20 个校准、20 个测试演示者，共 60 次运行和 1,200 次测试评估（600 个不同测试奖励在两个估计器间复用）。置信区间以 30 个环境—种子块为独立重复单位，先平均共享同一批数据的两个估计器，再计算 95% Student-\(t\) 区间。</p>
 
       <h3>10.1 实验一：对“什么都没改变”的干预，半径会不会改变？</h3>
       <p>对每个 \(\kappa\in\{1,2,5,10,50,200\}\) 和 10 个种子中的每一个，实验随机生成一个 MDP（\(|S|=6\)、\(|A|=3\)、\(d=4\)）、一个中心和 16 个校准演示者，再随机生成条件数为 \(\kappa\) 的对称正定矩阵 \(A\)，施加可逆特征变换 \(\phi\mapsto A\phi\)、\(\theta\mapsto A^{-\top}\theta\)。每个状态—动作奖励、最优策略和演示数据都完全相同，只有坐标写法变了。因此这不是普通相关性比较，而是一个直接的反事实检验：正确的奖励不确定性不应移动。</p>
       <ul>
         <li>点态奖励最大数值差只有 \(2.1\times10^{-14}\)。</li>
         <li>当条件数 \(\kappa=200\) 时，角度半径平均移动 \(0.424\) 弧度，即 \(24.3^\circ\)；最坏种子移动 \(1.071\) 弧度。</li>
-        <li>单位跨度 decision-aware 半径的最大变化为 \(2.0\times10^{-8}\)，处于求解器误差量级。</li>
+        <li>未做单位跨度归一化的 decision-aware 半径在这项实验中的最大变化为 \(2.0\times10^{-8}\)，处于求解器误差量级。</li>
       </ul>
       <div class="callout intuition">
         <div class="title">但不变性本身并不是卖点</div>
@@ -662,21 +663,21 @@
       <h3>10.3 实验三：额外识别必须强到什么程度？</h3>
       <p>对每次运行，定义可直接观测的“识别预算”</p>
       <div class="math-card">\[b=\max\{1-2q_\gamma,0\}.\]</div>
-      <p>外部认证的 fiber 宽度必须满足 \(\eta&lt;b\)，才有 \(R=2q_\gamma+\eta&lt;1\)。这张前沿图不是从测试真值“估计” \(\eta\)，而是在回答：未来的多环境观测、主动比较或先验约束至少要把 fiber 压到多窄。</p>
+      <p>认证的 fiber 宽度必须满足 \(\eta&lt;b\)，才有 \(R=2q_\gamma+\eta&lt;1\)。这只是正的最坏情况优势的必要条件，并非充分条件。这张前沿图不是从测试真值“估计” \(\eta\)，而是在回答：未来的多环境观测、主动比较或先验约束至少要把 fiber 压到多窄。</p>
       <ul>
         <li>\(q_\gamma\) 的总体均值为 \(0.316\)，中位数为 \(0.289\)，范围为 \([0.019,0.871]\)。</li>
         <li>如果外部机制能认证 \(\eta=0\)、\(0.2\)、\(0.5\)，分别有 85.0%、76.7%、36.7% 的运行仍满足 \(R&lt;1\)。</li>
-        <li>在 \(\eta=0.2\) 的假设下，random MDP、gridworld、Objectworld 的非退化比例分别为 95%、60%、75%。</li>
-        <li>使用唯一通用证书 \(\eta=2\) 时，所有运行都有 \(R=2\)，非退化比例严格为 0。</li>
+        <li>在 \(\eta=0.2\) 的假设下，random MDP、gridworld、Objectworld 满足半径阈值的比例分别为 95%、60%、75%。</li>
+        <li>使用唯一通用证书 \(\eta=2\) 时，所有运行都有 \(R=2\)，满足半径阈值的比例严格为 0。</li>
       </ul>
 
       <h3>10.4 为什么“包含率 1、参考安全率 1”并不是好消息？</h3>
-      <p>在通用 \(\eta=2\) 下，扩张包含率与相对参考安全率都等于 1，但算法返回的正是参考占用测度。这里的 1 只是定理和实现相互吻合：集合大到足以包含一切，也大到不允许任何安全改进。不能把它写成“我们取得 100% 安全且性能优越”。</p>
+      <p>在通用 \(\eta=2\) 下，扩张包含率与相对参考安全率都等于 1，但算法返回的正是参考占用测度。这里的 1 只是定理和实现相互吻合：集合大到足以包含一切，也大到该球上的最优最坏情况优势为零。不能把它写成“我们取得 100% 安全且性能优越”。</p>
 
       <h3>10.5 点估计器也有定义域检查</h3>
       <p>exact-fit LP-IRL 在 30 个环境—种子拟合中有 1 次返回占用跨度为零的中心。此时单位跨度代表元不存在。主射影审计因此使用每次都产生占用跨度非零中心的 MaxEnt 与 Bayesian；LP-IRL 的失败被记录为 abstention，而不是加一个任意 epsilon 掩盖。</p>
 
-      <h3>10.6 Regret 表格：构造部分没有被检验</h3>
+      <h3>10.6 原始 Regret 表格：没有检验正优势的认证处方</h3>
       <table>
         <caption>真实奖励平均 regret，\(\gamma=0.8\)，每格 10 个种子，越低越好；<strong>加粗</strong>是跨度策略胜过点估计的格。span 用 Stage-I 半径 \(q_\gamma\)（无包含保证），safe 用 \(\eta=2\) 的认证半径 \(R\)。</caption>
         <thead>
@@ -694,7 +695,7 @@
           <tr><th scope="row">random MDP</th><td>MaxEnt</td><td>0.004</td><td>0.008</td><td>0.034</td><td>0.025</td><td>0.005</td></tr>
         </tbody>
       </table>
-      <p>Stage-I 跨度策略 6 格赢 2、输 4；认证的 Stage-II 策略<strong>在每一格都比点估计差</strong>。这正是退化命题预测的结果：足以认证包含的半径，也大到把解拉回参考策略。这些比较都不在定理 1 的覆盖范围内——它保证的是对 \(\mu_{\mathrm{ref}}\) 的优势，不是对点估计的优势。论文报告这张表是为了让正文里的说法有出处，而不是把它当作性能提升的证据。</p>
+      <p>Stage-I 跨度策略 6 格赢 2、输 4；认证的 Stage-II 策略<strong>在每一格都比点估计差</strong>。退化命题预测的是返回参考策略；参考策略比点估计差则是经验结果，并非定理结论。这些比较都不在定理 1 的覆盖范围内——它保证的是对 \(\mu_{\mathrm{ref}}\) 的优势，不是对点估计的优势。论文报告这张表是为了让正文里的说法有出处，而不是把它当作性能提升的证据。</p>
       <div class="callout warning">
         <div class="title">不要太快地把 value-gap 球一笔抹掉</div>
         <p>表里 value-gap 那个球——论文说它<strong>什么都不保证</strong>——却在 6 格中有 3 格与点估计持平或更好，另 2 格差距在 0.001 以内。一个没有认证的惩罚项仍然可以是有用的正则化器。论文附录里对它“什么都不保证”的判断针对的是认证，而不是经验 regret；这两件事应分开看。</p>
@@ -705,8 +706,16 @@
 
       <div class="callout limit">
         <div class="title">这些实验没有证明什么？</div>
-        <p>它们没有证明 decision-aware 鲁棒化总能降低真实 regret，也没有提供一个新的 \(\eta\) 认证方法。更要紧的是：构造部分根本没有被检验——在全部报告的实验里安全策略都等于参考策略，所以那些数字只验证了退化命题，别的一概没有验证。论文点出两条补救路线（精确计算 \(s^{\max}\)、认证小 \(\eta\)）却两条都没试，而实验里 \(d\le5\)、讨论里也说了小 \(d\) 可枚举。当前最扎实的贡献是：把表示错误、相交—包含缺口以及所需识别强度分别测出来。</p>
+        <p>原始 E1–E3 没有证明鲁棒化总能降低真实 regret，也没有检验具有正最坏情况优势的认证处方：其中安全策略都返回参考策略。它们验证表示依赖、相交—包含缺口及半径阈值。新增附录 D 检验了一个正优势特例，但不改变原始基准上的性能结论。</p>
       </div>
+    </section>
+
+    <section id="post-acceptance-toy">
+      <h2>接收后补充：精确锥小实验</h2>
+      <p>2026 年 10 月 6 日新增，未包含在已评审稿中。附录 D 使用单状态、两维奖励、正多边形动作特征；单位跨度可行锥截面是线段，端点精确给出全锥直径与最大分数，无需从潜在测试奖励估计证书。</p>
+      <p>16 动作时，η = 0.397825，q = 0.191342，R = 0.780508，相对固定均匀参考的最坏情况优势为 0.109746。精确最大分数给出半径 0.581596、优势 0.209202；二者选择同一动作，改进的是证书而非策略表现。100 个独立划分，每次 20 个校准、100 个测试奖励。</p>
+      <p>4 动作控制中，桥接球与最大分数球的最优最坏情况优势均为零；同一控制的完整归一化可行锥却支持 0.5 的优势。这定位了球形包络的保守性，并非新的通用总体覆盖方法。结果不证明原始基准上的有用宽度或性能提升。</p>
+      <p><a href="paper/main.pdf#page=14">附录 D</a> · <a href="experiments/run_exact_cone_toy.py">可复现脚本</a> · <a href="experiments/exact_cone_toy_results.json">记录结果</a> · <a href="paper/POST_ACCEPTANCE_CHANGES.md">修订记录</a></p>
     </section>
 
     <section id="novelty">
@@ -717,14 +726,14 @@
         <li>结合 Bellman 可行奖励锥与占用跨度，构造具有精确相交含义的 conformal 分数。</li>
         <li>用单位跨度射影化同时处理正尺度和加性空方向，同时保持 Stage-I 分数为 LP。</li>
         <li>以 fiber 直径 \(\eta\) 明确连接相交覆盖、潜在奖励包含和参考相对安全处方。</li>
-        <li>证明退化阈值：\(R\ge1\) 时处方必然平凡，并让代码直接报告保证是否非平凡。</li>
+        <li>证明该球形构造的退化阈值：\(R\ge1\) 时最优最坏情况优势为零；\(R&gt;1\) 时所有最优解与参考特征等价，\(R=1\) 时可有其他并列解。代码中的 nontrivial 仅表示 \(R&lt;1\)。</li>
       </ul>
 
       <h3>11.2 已有基础</h3>
       <div class="callout prior">
         <div class="title">这是组合创新，不是每个零件都首次出现</div>
         <ul>
-          <li><a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/7423902b5534e2b267438c85444a54b1-Paper-Conference.pdf">Conformal Inverse Optimization</a> 已提供校准—鲁棒化框架，并证明学习集合以指定边际概率与下一次逆可行参数集相交。本文的 fiber 宽度桥是新增假设，不能归给 CIO。</li>
+          <li><a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/7423902b5534e2b267438c85444a54b1-Paper-Conference.pdf">Conformal Inverse Optimization</a> 已提供校准—鲁棒化框架，并证明学习集合以指定边际概率与下一次逆可行参数集相交。其 Assumption 2 已假设欧氏逆可行集直径有界，Theorem 3 使用该界控制决策质量。本文的单位跨度宽度桥是几何适配，并非首次提出宽度假设。</li>
           <li><a href="https://arxiv.org/abs/2309.15257">STARC</a> 已研究行为相关的奖励规范化与 regret 几何。</li>
           <li>Bellman 最优性不等式描述可行奖励集合，是经典 IRL 几何。</li>
           <li>逐点最小线性函数的凹性和支持函数—规范函数对偶属于标准凸分析。</li>
@@ -740,7 +749,7 @@
         </li>
         <li>
           <strong>数据路线：认证小的 \(\eta\)。</strong>
-          手段包括在多个动力学下重复观测同一位演示者、主动比较、或对奖励的外部已知限制。
+          附录 D 在已知 MDP 上直接计算全锥宽度。更一般的手段包括多动力学观测、主动比较或已知奖励限制；若限制可行锥，须同步修改分数与证书。
         </li>
       </ol>
       <p>两条路线互补——一条减少<em>必须假设</em>的东西，另一条加强<em>可以假设</em>的东西——并且都推动第 10.3 节的同一条前沿。</p>
@@ -773,7 +782,7 @@
           <tr><th scope="row">相交保证</th><td>\(\P[K(\pi_{\rm new})\cap B_{q_\gamma}\ne\varnothing]\ge\gamma\)</td><td>新策略至少有一种兼容奖励落入集合。</td></tr>
           <tr><th scope="row">包含半径</th><td>\(R=\min\{2,2q_\gamma+\eta\}\)</td><td>用 fiber 宽度把相交升级为潜在射线包含。</td></tr>
           <tr><th scope="row">相对鲁棒目标</th><td>\(\max_\mu\min_{\theta\in B_R}[V_\theta(\mu)-V_\theta(\mu_{\rm ref})]\)</td><td>在包含集合上防守相对参考策略的最坏优势。</td></tr>
-          <tr><th scope="row">识别预算</th><td>\(b=\max\{1-2q_\gamma,0\}\)，需 \(\eta&lt;b\)</td><td>可观测地判定处方能否非平凡。</td></tr>
+          <tr><th scope="row">识别预算</th><td>\(b=\max\{1-2q_\gamma,0\}\)，需 \(\eta&lt;b\)</td><td>正最坏情况优势的必要半径条件，并非充分条件。</td></tr>
         </tbody>
       </table>
       <div class="one-line">一句话：conformal 给 \(q_\gamma\)，识别结构给 \(\eta\)，两者合成 \(R\)；只有当 \(R&lt;1\) 时，参考相对的鲁棒处方才可能非平凡。</div>
@@ -786,7 +795,7 @@
   </main>
 
   <footer>
-    <p>本页面是论文 <a href="paper/main.pdf">《Calibrating What Behavior Can Identify: Conformal Reward Sets for Inverse Reinforcement Learning》</a>（NeurIPS 2026 PUDM workshop，poster）的中文数学导读。页面内容与 <a href="paper/main.tex">camera-ready 源文件</a>逐条对应（标注为导读评论的部分除外；与投稿版的差异见 <a href="paper/ERRATA.md">勘误</a>）；若两者冲突，以论文为准。</p>
+    <p>本页面是论文 <a href="paper/main.pdf">《Calibrating What Behavior Can Identify: Conformal Reward Sets for Inverse Reinforcement Learning》</a>（NeurIPS 2026 PUDM workshop，poster）的中文数学导读。页面内容与 <a href="paper/main.tex">2026 年 10 月 6 日接收后修订源文件</a>逐条对应（标注为导读评论的部分除外；<a href="paper/main_full9_revised.pdf">已接收投稿版</a>保持不变；差异见 <a href="paper/POST_ACCEPTANCE_CHANGES.md">修订记录</a>）；若两者冲突，以论文为准。</p>
   </footer>
 </div>
 </body>

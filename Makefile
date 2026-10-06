@@ -13,7 +13,7 @@ AUDIT_JSON := experiments/containment_audit_results_v2.json
 
 TESTS := tests cio/tests irl/tests robust/tests conformal/tests
 
-.PHONY: help paper clean test figures experiments verify toy
+.PHONY: help paper clean test figures experiments verify toy overview
 
 help:
 	@echo "make paper       build paper/main.pdf (4-pass, runs bibtex)"
@@ -21,6 +21,7 @@ help:
 	@echo "make experiments rerun the three scripts behind the paper's numbers (hours)"
 	@echo "make figures     redraw both figures from the recorded JSONs"
 	@echo "make verify      re-check the App. C identities numerically"
+	@echo "make overview    redraw the two web overview figures (no experiment run)"
 	@echo "make toy         rerun the small post-acceptance exact-cone diagnostic"
 	@echo "make clean       remove LaTeX byproducts (keeps main.pdf)"
 
@@ -52,3 +53,6 @@ verify:
 
 toy:
 	PYTHONPATH=. $(PY) experiments/run_exact_cone_toy.py
+
+overview:
+	$(PY) paper/make_core_figures.py
