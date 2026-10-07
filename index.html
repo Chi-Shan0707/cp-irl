@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calibrating What Behavior Can Identify — Yuhan Chi</title>
-<meta name="description" content="Conformal reward calibration in IRL: invariant scores, identification assumptions and limits of robust prescriptions. Accepted at NeurIPS 2026 PUDM; dated post-acceptance supplement available.">
+<meta name="description" content="Many rewards can explain the same behavior. CP-IRL studies what conformal calibration can guarantee about those rewards and when that guarantee supports safer decisions.">
 <meta name="author" content="Yuhan Chi">
 <meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141311" media="(prefers-color-scheme: dark)">
@@ -181,6 +181,9 @@
   .contrib p:last-child{margin-bottom:0;}
   .contrib .fig{font-family:var(--mono); font-size:0.85rem; color:var(--accent);}
 
+  details{margin-top:20px; color:var(--ink-soft); line-height:1.7;}
+  summary{cursor:pointer; font-weight:600; color:var(--ink);}
+  details p{margin:12px 0;}
   figure{margin:0; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px;}
   figure img{width:100%; height:auto; display:block; border-radius:4px;}
   figcaption{margin-top:14px; font-size:0.87rem; color:var(--ink-soft);}
@@ -245,6 +248,8 @@
     <p class="kicker">Conformal Prediction &middot; Inverse Reinforcement Learning</p>
     <h1>Calibrating What Behavior Can Identify</h1>
     <p class="subtitle">Conformal Reward Sets for Inverse Reinforcement Learning</p>
+    <p class="lede">Many rewards can explain the same behavior.<br>
+      Which ones must we account for before choosing a policy safely?</p>
 
     <p class="byline">
       <a href="https://github.com/Chi-Shan0707" target="_blank" rel="noopener">Yuhan Chi</a>
@@ -283,90 +288,120 @@
 
 <section>
   <div class="wrap">
-    <h2>The question</h2>
+    <h2>What can we learn from behavior?</h2>
     <div class="lede">
-      <p>Conformal inverse optimization (CIO) handles the one-shot version of this
-      problem: fit a point estimate, calibrate a radius on held-out decisions, then
-      optimize robustly over the resulting set. The recipe reads as if it ports to
-      inverse reinforcement learning. This paper reports what happens when it is
-      carried over, component by component. The conformal rank argument transfers;
-      the score and the interpretation of its guarantee require care in IRL's
-      reward geometry.</p>
-      <p><a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/7423902b5534e2b267438c85444a54b1-Paper-Conference.pdf">CIO</a>
-      already states intersection coverage and assumes an inverse-set diameter
-      bound. This work adapts those ingredients to normalized occupancy-span
-      geometry and quantifies their consequences for a specific robust prescription.</p>
+      <p>Watching someone choose a route tells us something about what they value.
+      But the same route might reflect a preference for speed, safety, or comfort.
+      Inverse reinforcement learning tries to infer these preferences as a
+      <em>reward function</em>. Usually, several rewards explain the same behavior.</p>
+      <p><strong>This paper asks when a calibrated set of reward explanations is
+      enough to support a safe decision.</strong> Conformal calibration uses held-out
+      behavior to choose the set’s size. We build a score that measures
+      reward differences by their effect on policy values, then identify what is
+      needed to turn a guarantee about behavior into a guarantee about the reward
+      behind it.</p>
     </div>
+    <p>Building on conformal prediction, IRL, and
+      <a href="https://proceedings.neurips.cc/paper_files/paper/2024/file/7423902b5534e2b267438c85444a54b1-Paper-Conference.pdf">conformal inverse optimization (CIO)</a>,
+      the contribution is a decision-based calibration score and an analysis of
+      when its reward sets can support a policy that is no worse than a chosen baseline.
+      CIO already uses calibration and assumes a bound on ambiguity;
+      we adapt these to IRL and analyze the resulting guarantees and limits.</p>
   </div>
 </section>
 
 <section id="core-idea">
   <div class="wrap">
-    <h2>The core idea</h2>
-    <p class="lede">Calibrate in behavior-relevant reward geometry; distinguish intersection
-    from containment; use an identification certificate before prescribing safely.</p>
+    <h2>The idea in two pictures</h2>
+    <p class="lede"><strong>A set can contain a reward that explains someone's behavior
+    while missing the reward they actually use.</strong> Our approach closes that gap
+    using a bound on how different the compatible rewards can be.</p>
     <figure>
-      <a href="paper/figures/core_geometry.svg" aria-label="Open the reward geometry figure at full size">
+      <a href="paper/figures/core_geometry.svg" aria-label="Open the reward explanation figure at full size">
         <img src="paper/figures/core_geometry.svg" width="1200" height="650" loading="lazy"
-          alt="A calibrated blue span ball intersects the feasible reward cone but misses the latent reward. A certified fiber width expands it to a green ball containing that reward.">
+          alt="Left: the blue reward set touches the gray region of rewards that explain the behavior but misses the star, the actual reward. Right: a bound on ambiguity lets us enlarge the set to include the star.">
       </a>
-      <figcaption><strong>1–2. Behavior → reward containment.</strong> Nearest-cone conformal
-      calibration guarantees intersection. A certified unit-span fiber width η gives
-      the containment radius R = min{2, 2q + η}. This is the exact 16-action geometry
-      from Appendix D: w = 2θ/(1−β), with span norm max<sub>j</sub> p<sub>j</sub><sup>T</sup>w.
-      Blue: calibrated ball; green: expanded ball. <a href="paper/figures/core_geometry.pdf">Vector PDF</a>.</figcaption>
+      <figcaption><strong>Read the star first: it is the demonstrator's actual reward.</strong>
+      Every reward in the gray region explains the same behavior. The blue set reaches
+      that region, yet misses the star. The orange segment puts compatible rewards at
+      a common scale so we can compare their spread. A proven bound on that spread
+      tells us how far to expand the set; the green set now covers the star.
+      <a href="paper/figures/core_geometry.pdf">Download PDF</a>.</figcaption>
     </figure>
-    <figure style="margin-top:24px">
-      <a href="paper/figures/core_prescription.svg" aria-label="Open the decision certificate figure at full size">
+    <details>
+      <summary>What exactly does calibration guarantee?</summary>
+      <p>Under the paper's assumptions, the blue set intersects the reward set of a
+      new demonstrator with probability at least the chosen level γ. This means it
+      contains <em>some</em> reward explaining that behavior, not necessarily the
+      demonstrator's normalized actual reward. A certified bound η on the diameter
+      of each compatible unit-span reward set upgrades this to reward containment:
+      R = min{2, 2q + η}, where q is the calibrated radius.</p>
+      <p>This is a marginal guarantee: the probability averages over calibration
+      samples and a new demonstrator, rather than guaranteeing coverage for every
+      person or every fitted set. It assumes a shared known MDP, fully observed
+      exactly optimal policies, nonnull rewards and center, exchangeable calibration,
+      and a valid width bound.</p>
+      <p>The drawing uses the exact 16-action example in Appendix D. Its axes are
+      w = 2θ/(1−β); the span norm is max<sub>j</sub> p<sub>j</sub><sup>T</sup>w.
+      The polygonal sets are balls in this norm. The picture illustrates the
+      coverage event; its proof comes from calibration and the width bound.</p>
+    </details>
+    <figure style="margin-top:32px">
+      <a href="paper/figures/core_prescription.svg" aria-label="Open the safe decision figure at full size">
         <img src="paper/figures/core_prescription.svg" width="1200" height="500" loading="lazy"
-          alt="The toy's optimal worst-case advantage decreases with the containment radius and becomes zero at R = 1. The general ball-based result makes R below 1 necessary, not sufficient, for positive advantage.">
+          alt="In a small exact example, the best worst-case gain over a baseline decreases as the reward set grows. At radius 1 or larger, the ball-based rule cannot certify an improvement.">
       </a>
-      <figcaption><strong>3. Containment → a decision certificate.</strong> Optimize worst-case
-      advantage over the containing ball relative to a feasible reference policy.
-      The safety statement is marginal, under the paper's assumptions: a shared known
-      MDP, fully observed exact-optimal policies, nonnull rewards and center,
-      exchangeable calibration, and a valid width certificate. The curve is exact
-      for this toy, not a general performance law. <a href="paper/figures/core_prescription.pdf">Vector PDF</a>.</figcaption>
+      <figcaption><strong>Covering more rewards makes protection easier, but improvement harder.</strong>
+      The baseline is a policy we could keep using. We choose a new policy by
+      maximizing its worst-case gain over that baseline across the reward set. If the actual reward is covered, the policy is no worse
+      than that baseline. A very large set can leave no provable improvement, so
+      keeping the baseline is optimal. The curve shows one exact small example.
+      <a href="paper/figures/core_prescription.pdf">Download PDF</a>.</figcaption>
     </figure>
-    <p class="small">Explanatory figures added after acceptance; the original paper figures
-    and accepted submission are preserved. <a href="paper/make_core_figures.py">Reproduce with make overview</a>
-    without running experiments.</p>
+    <details>
+      <summary>What does “safe” mean, and where does this rule stop helping?</summary>
+      <p>“Safe” means no worse than the reference policy in expected discounted
+      reward. It is a comparison of policy values, not a guarantee that every
+      trajectory avoids harm. Reward containment transfers its marginal probability
+      of at least γ to this comparison.</p>
+      <p>For the paper's ball-shaped reward set, R ≥ 1 makes the optimal worst-case
+      gain zero. R &lt; 1 is necessary, but not sufficient, for a positive gain.
+      At R &gt; 1 all optimal policies have the same expected features as the reference;
+      at R = 1 other policies may tie. Other reward-set shapes can behave differently.</p>
+      <p>The plotted curve is G(R) = max{0, (1−R)/2} for the 16-action example with a
+      uniform reference. Its positive branch is example-specific. These explanatory
+      figures were added after acceptance; see the
+      <a href="paper/POST_ACCEPTANCE_CHANGES.md">version record</a> and
+      <a href="paper/make_core_figures.py">reproducible plotting source</a>.</p>
+    </details>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2>Geometry, coverage, and the cost of prescription</h2>
+    <h2>What the paper contributes</h2>
     <div class="contrib-grid">
       <div class="contrib">
-        <span class="num">01 &middot; the score</span>
-        <h3>Coordinates the problem never fixes</h3>
-        <p>CIO scores a demonstration by an angle between reward vectors. A feature
-        reparameterization that changes no reward and no demonstrator's policy still
-        moves the calibrated angular radius.</p>
-        <p class="fig">24&deg; on average at &kappa;&nbsp;=&nbsp;200, ours 2&times;10<sup>&minus;8</sup></p>
+        <span class="num">01 &middot; measure the right difference</span>
+        <h3>Compare what rewards do to decisions</h3>
+        <p>Two coordinate descriptions of the same reward should give the same
+        uncertainty. We measure reward differences by how much they change policy
+        values. The resulting calibration score is invariant to feature
+        reparameterization and can be computed by a linear program.</p>
       </div>
       <div class="contrib">
-        <span class="num">02 &middot; the event</span>
-        <h3>Which distance you score picks the guarantee</h3>
-        <p>The nearest point to the cone of rewards explaining new behavior certifies
-        <em>intersection</em> with that cone. The farthest point of the normalized cone
-        certifies <em>containment</em> of the normalized latent reward. The minimum
-        score admits a general LP formulation; the maximum is solved exactly in
-        the special case added below.</p>
-        <p class="fig">0.82 vs 0.44 at a 0.80 target</p>
+        <span class="num">02 &middot; state what is covered</span>
+        <h3>A plausible explanation can miss the actual reward</h3>
+        <p>We separate two events: the set contains a reward compatible with the
+        behavior, and it contains the normalized actual reward. At an 80% target,
+        the original experiment observes about 82% for the first and 44% for the second.</p>
       </div>
       <div class="contrib">
-        <span class="num">03 &middot; the price</span>
-        <h3>What containment costs</h3>
-        <p>Given a certified cone width &eta;, the radius becomes
-        <em>R</em>&nbsp;=&nbsp;min{2,&nbsp;2<em>q</em>&nbsp;+&nbsp;&eta;}, and
-        <em>R</em>&nbsp;&ge;&nbsp;1 gives zero optimal worst-case advantage for
-        this ball-based objective. At <em>R</em>&nbsp;&gt;&nbsp;1 every optimum is
-        feature-equivalent to the reference; at equality, other optima may tie.</p>
-        <p class="fig">Hypothetical &eta;&nbsp;=&nbsp;0.2: 76.7% meet <em>R</em>&nbsp;&lt;&nbsp;1</p>
-        <p>This is a necessary condition for positive robust advantage, not a
-        measured improvement rate.</p>
+        <span class="num">03 &middot; connect coverage to decisions</span>
+        <h3>Show what a safety guarantee needs</h3>
+        <p>A certified bound on the remaining reward ambiguity lets us enlarge the
+        set and protect a baseline policy. We also identify when that enlargement
+        becomes so conservative that the ball-based rule cannot certify any gain.</p>
       </div>
     </div>
   </div>
@@ -374,20 +409,25 @@
 
 <section>
   <div class="wrap">
-    <h2>The two failures, measured</h2>
+    <h2>What the original experiments show</h2>
     <figure>
       <img src="paper/figures/fig1_metric.png" width="1059" height="392" loading="lazy"
            alt="Original Figure 1. Left: coordinate changes move the angular radius by 0.424 radians on average at condition number 200, but the span radius by at most 2e-8. Right: score coverage is 0.812, 0.838 and 0.819 for angular, value-gap and span; containment is 0.368, 0.004 and 0.438. The value-gap score event is not set intersection despite the shared original legend.">
-      <figcaption>Figure 1 from the paper. <strong>(a)</strong> A random invertible feature
-      reparameterization &mdash; the same problem in different coordinates &mdash; moves CIO's
-      angular radius by 0.424&nbsp;rad on average at &kappa;&nbsp;=&nbsp;200, and the span
-      radius by at most 2&times;10<sup>&minus;8</sup>. <strong>(b)</strong> The same calibration
-      run, two different events: score coverage is 0.812, 0.838 and 0.819, while
-      containment is 0.368, 0.004 and 0.438. The original figure is retained;
-      its shared &ldquo;intersection&rdquo; legend means only score coverage for
-      the value-gap baseline. Containment uses angular, Euclidean and span
-      geometry, respectively.</figcaption>
+      <figcaption><strong>Left: changing coordinates should not change uncertainty.</strong>
+      The underlying rewards and behavior stay the same, but the angular method's
+      radius moves by about 24° on average at condition number 200. Our span-based
+      radius changes by at most 2×10<sup>−8</sup>.
+      <strong>Right: passing calibration does not imply covering the actual reward.</strong>
+      All three scores reach their 80% target, while actual-reward coverage is much lower.</figcaption>
     </figure>
+    <details>
+      <summary>How to read the original figure's labels and numbers</summary>
+      <p>Score coverage is 0.812, 0.838 and 0.819; reward containment is 0.368, 0.004
+      and 0.438 for the angular, value-gap and span methods. The original figure's
+      shared “intersection” legend means only score coverage for the value-gap
+      baseline. The containment tests use angular, Euclidean and span geometry,
+      respectively. The 24° result is 0.424 radians at κ = 200.</p>
+    </details>
   </div>
 </section>
 
@@ -395,45 +435,47 @@
   <div class="wrap">
     <h2>Limits of the original experiments</h2>
     <div class="caveat">
-      <p><strong>E1&ndash;E3 do not exercise a positive safety certificate.</strong>
-      They use the universal bound &eta;&nbsp;=&nbsp;2, which makes
-      <em>R</em>&nbsp;=&nbsp;2 and returns the reference. The certified policy
-      loses to the point estimate in every cell of
-      Table&nbsp;2, and the Stage-I policy wins in only two of six.</p>
-      <p>The theorem explains the return to the reference, not its regret relative
-      to the point estimate. Its threshold concerns this particular ball and
-      objective; it does not establish an impossibility for all safe decisions
-      from partially identified rewards.</p>
+      <p><strong>The original benchmarks did not demonstrate a useful certified improvement.</strong>
+      Without a sharper bound on reward ambiguity, the safe version returns the
+      baseline policy. It performs worse than the point estimate in all six comparisons
+      in Table 2. A less conservative version, without reward-containment coverage,
+      wins two of six.</p>
+      <p>The theory explains why the certified rule returns the baseline. It does
+      not predict whether that baseline beats the point estimate. These results
+      motivate finding tighter ambiguity bounds or using reward sets of a different shape.</p>
     </div>
   </div>
 </section>
 
 <section id="post-acceptance">
   <div class="wrap">
-    <h2>Post-acceptance supplement &middot; 6 October 2026</h2>
+    <h2>Can the guarantee ever support an improvement?</h2>
     <div class="lede">
-      <p>A one-state MDP with two reward features makes each normalized reward
-      cone a line segment. Its endpoints certify the full cone width and the
-      farthest-distance score exactly. No sampled latent rewards are used to
-      certify either quantity.</p>
+      <p><strong>Yes, in a small example where the ambiguity can be calculated exactly.</strong>
+      We use one state and two reward features, so the compatible rewards at a common
+      scale form a line segment. Its endpoints give a proven ambiguity bound,
+      rather than estimating one from sampled hidden rewards.</p>
+      <p>Added after acceptance on 6 October 2026; this experiment was not part of
+      the reviewed submission.</p>
     </div>
     <div class="table-scroll">
       <table class="result-table">
         <caption>Appendix D: a fixed center and uniform reference, 100 independent
         calibration/test splits. Values are common across splits to shown precision.</caption>
-        <thead><tr><th scope="col">Actions</th><th scope="col">Exact &eta;</th><th scope="col">Radius <em>R</em></th><th scope="col">Worst-case advantage</th></tr></thead>
+        <thead><tr><th scope="col">Actions</th><th scope="col">Reward ambiguity η</th><th scope="col">Set size R</th><th scope="col">Worst-case gain over baseline</th></tr></thead>
         <tbody>
           <tr><th scope="row">16</th><td>0.397825</td><td>0.780508</td><td>0.109746</td></tr>
           <tr><th scope="row">4 (control)</th><td>2</td><td>2</td><td>0</td></tr>
         </tbody>
       </table>
     </div>
-    <p>In the 16-action case, exact farthest-score calibration further reduces the
-    radius to 0.581596 and certifies advantage 0.209202. Both radii select the same
-    action: the improvement is in the certificate, not in measured policy performance.</p>
-    <p>In the four-action control, direct optimization over the full feasible cone
-    certifies advantage 0.5 even though the enclosing ball has zero worst-case
-    advantage. This separates set-shape conservatism from reward non-identifiability.</p>
+    <p>With 16 actions, the expanded set still supports a provable gain of 0.109746
+    over the uniform baseline. Directly calibrating the farthest compatible reward
+    gives a tighter set and a larger certified gain of 0.209202. Both methods choose
+    the same action, so this strengthens the guarantee rather than improving the policy.</p>
+    <p>With four actions, the ball-shaped set gives no certified gain. Keeping the
+    exact compatible reward set instead gives a gain of 0.5 in this control.
+    This shows that the shape used to represent uncertainty can itself limit the decision.</p>
     <p>This deliberately small example does not establish useful widths for the
     original benchmarks, scalability, or superiority to point-estimate IRL.
     It was added after acceptance and was not part of the reviewed submission.</p>

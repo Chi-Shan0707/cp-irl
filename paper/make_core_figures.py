@@ -70,17 +70,19 @@ def save(fig, name, labels):
         temporary = OUT / f".{name}.tmp.{ext}"
         fig.savefig(temporary, dpi=220, facecolor="white",
                     metadata={"Creator": "CP-IRL: paper/make_core_figures.py"})
+        if ext == "svg":
+            temporary.write_text("\n".join(line.rstrip() for line in temporary.read_text().splitlines()) + "\n")
         temporary.replace(OUT / f"{name}.{ext}")
     plt.close(fig)
 
 
 fig = plt.figure(figsize=(12, 6.5))
 labels = []
-for left, title, enlarged in [(0.07, "1  Calibrate intersection", False),
-                              (0.55, "2  Certify reward containment", True)]:
+for left, title, enlarged in [(0.07, "1  Many rewards fit the same behavior", False),
+                              (0.55, "2  Bound the remaining ambiguity", True)]:
     labels.append(fig.text(left, .945, title, fontsize=17, weight="bold"))
-    labels.append(fig.text(left, .885, "Nearest-cone distance gives an LP score." if not enlarged
-                           else "A certified fiber width supplies the bridge.", fontsize=12))
+    labels.append(fig.text(left, .885, "The blue set can still miss the actual reward." if not enlarged
+                           else "Use that bound to enlarge the reward set.", fontsize=12))
     ax = fig.add_axes([left+.035, .32, .355, .49])
     ax.add_patch(Polygon([[0, 0], 3*fiber[0], 3*fiber[1]], facecolor="#ECEFF2",
                          edgecolor="#9AA5AF", linewidth=1.3, zorder=0))
@@ -92,50 +94,50 @@ for left, title, enlarged in [(0.07, "1  Calibrate intersection", False),
     ax.plot(fiber[:, 0], fiber[:, 1], color=ORANGE, linewidth=4, solid_capstyle="round", zorder=3)
     ax.scatter(*center, color=INK, marker="+", s=130, linewidths=2, zorder=4)
     ax.scatter(*latent, color=ORANGE, marker="*", s=150, edgecolor="white", linewidth=.7, zorder=4)
-    ax.set(xlim=(0, 1.9), ylim=(-.85, 1.0), xlabel=r"$w_1$", ylabel=r"$w_2$")
+    ax.set(xlim=(0, 1.9), ylim=(-.85, 1.0), xlabel="Reward weight 1", ylabel="Reward weight 2")
     ax.set_aspect("equal")
     ax.set_xticks([0, .5, 1, 1.5]); ax.set_yticks([-.5, 0, .5, 1])
     ax.tick_params(labelsize=10)
     ax.grid(alpha=.15, zorder=-1)
     labels.append(fig.text(left+.035, .20,
-        r"$B_q\cap K(\pi)\ne\varnothing,\qquad\theta^\circ\notin B_q$" if not enlarged
-        else r"$R=\min\{2,\,2q+\eta\},\qquad\theta^\circ\in B_R$", fontsize=16))
-handles = [Patch(facecolor="#ECEFF2", edgecolor="#9AA5AF", label=r"Feasible cone $K(\pi)$"),
-           Line2D([], [], color=ORANGE, lw=4, label=r"Unit-span fiber $F^\circ(\pi)$"),
-           Line2D([], [], color=INK, marker="+", ls="", markersize=9, label="Fitted center"),
-           Line2D([], [], color=ORANGE, marker="*", ls="", markersize=11, label="Latent reward")]
+        "Touches a possible explanation; misses the star." if not enlarged
+        else "The larger set covers the actual reward.", fontsize=12))
+handles = [Patch(facecolor="#ECEFF2", edgecolor="#9AA5AF", label="Compatible rewards"),
+           Line2D([], [], color=ORANGE, lw=4, label="At a common scale"),
+           Line2D([], [], color=INK, marker="+", ls="", markersize=9, label="Reward estimate"),
+           Line2D([], [], color=ORANGE, marker="*", ls="", markersize=11, label="Actual reward")]
 fig.legend(handles=handles, loc="lower center", bbox_to_anchor=(.5,.095), ncol=4,
            frameon=False, fontsize=11, columnspacing=1.5)
 labels.append(fig.text(.5, .045,
-    "Exact 16-action geometry  ·  span balls, not Euclidean circles  ·  q = 0.191, η = 0.398, R = 0.781",
+    "Exact example  ·  Blue: calibrated set  ·  Green: expanded set  ·  Orange: rewards at a common scale",
     ha="center", fontsize=11))
 save(fig, "core_geometry", labels)
 
 fig = plt.figure(figsize=(12, 5.0))
-labels = [fig.text(.065,.93,"3  Prescribe relative to a reference",fontsize=18,weight="bold")]
+labels = [fig.text(.065,.93,"3  Choose a policy that protects a baseline",fontsize=18,weight="bold")]
 ax = fig.add_axes([.085,.20,.40,.62])
 radii = np.linspace(0,2,401)
 ax.axvspan(1,2,color="#ECEFF2",zorder=0)
 ax.plot(radii, np.maximum(0,(1-radii)/2), color=GREEN, lw=3)
 ax.axvline(1, color="#87929C", ls="--", lw=1.3)
 ax.scatter([R],[(1-R)/2],color=ORANGE,s=45,zorder=3)
-ax.annotate("Certified toy example\nR = 0.781, G = 0.110", xy=(R,(1-R)/2),
+ax.annotate("Small-example result\nR = 0.781; gain = 0.110", xy=(R,(1-R)/2),
             xytext=(1.10,.46),fontsize=10,arrowprops={"arrowstyle":"-","color":ORANGE},
             ha="left",va="center")
-ax.text(1.5,.28,"Zero optimal\nworst-case advantage",ha="center",fontsize=11,color=INK)
-ax.set(xlim=(0,2),ylim=(-.025,.53),xlabel="Containment radius R",ylabel="Optimal worst-case advantage G(R)")
+ax.text(1.5,.28,"No improvement\ncan be certified",ha="center",fontsize=11,color=INK)
+ax.set(xlim=(0,2),ylim=(-.025,.53),xlabel="Size of the reward set (R)",ylabel="Best worst-case gain over baseline")
 ax.set_xticks([0,.5,1,1.5,2]); ax.set_yticks([0,.1,.2,.3,.4,.5]); ax.grid(alpha=.15)
 for y, text, size, weight in [
-    (.77, "Containment → reference-relative safety", 13, "bold"),
-    (.665, r"$\Pr[V_{\theta^\circ}(\mu_R)\geq V_{\theta^\circ}(\mu_{\rm ref})]\geq\gamma$", 17, "normal"),
-    (.545, "With exchangeability and a valid width certificate.", 11, "normal"),
-    (.415, "For this translated span-ball prescription:", 12, "bold"),
-    (.315, "R < 1: necessary, not sufficient, for positive advantage.", 10.5, "normal"),
-    (.235, "R ≥ 1 gives G(R) = 0; the reference is optimal.", 11, "normal"),
-    (.155, "This is not an impossibility for other reward sets.", 11, "normal"),
+    (.77, "What does the guarantee mean?", 13, "bold"),
+    (.66, "If the set covers the actual reward,", 12, "normal"),
+    (.58, "the policy is no worse than a chosen baseline.", 12, "normal"),
+    (.43, "Why not make the set very large?", 13, "bold"),
+    (.33, "More possible rewards make improvement harder.", 11, "normal"),
+    (.24, "At R ≥ 1, this ball can certify no gain.", 11, "normal"),
+    (.15, "R < 1 allows a gain, but does not guarantee one.", 11, "normal"),
 ]:
     labels.append(fig.text(.555,y,text,fontsize=size,weight=weight))
-labels.append(fig.text(.5,.045,"Curve: exact 16-action toy with a uniform reference; G(R) = max{0, (1 − R)/2}. Not a general performance curve.",
+labels.append(fig.text(.5,.045,"Safety has the same probability guarantee as reward coverage. Curve: one exactly solved example.",
                        ha="center",fontsize=10.5))
 save(fig, "core_prescription", labels)
 print(f"Saved two verified geometric figures (SVG, PDF, PNG) in {OUT}")

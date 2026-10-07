@@ -154,3 +154,17 @@ PNG from `make_core_figures.py` without running experiments.
   text, including axis labels, ticks, legends and annotation text, also
   receives a bounding-box overlap check. Local browser checks at 1280 px and
   390 px verified that the SVGs load and the page has no horizontal overflow.
+
+### Plain-language presentation pass — 6 October 2026
+
+The project page, README and overview-figure labels now introduce the problem
+through multiple rewards explaining the same behavior. They explain the star,
+blue set, green set and baseline before naming intersection, containment or
+fiber width. Formal equations, normalization, marginal coverage and assumptions
+remain in expandable explanations. “Safe” is explicitly defined as expected
+reward relative to a baseline. Original benchmark limits, CIO attribution and
+the post-acceptance status of the toy remain visible.
+
+This is an explanatory edit only: the underlying figure geometry, decision
+curve, experiment results, paper sources and both paper PDFs are unchanged.
+The figures retain automated mathematical and text-overlap checks.

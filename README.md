@@ -35,80 +35,85 @@ small exact-cone diagnostic in Appendix D. The [accepted submission](paper/main_
 is preserved unchanged. The new experiment was not part of the reviewed paper;
 see the [detailed change record](paper/POST_ACCEPTANCE_CHANGES.md).
 
-## The question
+## What does this paper do?
 
-Conformal inverse optimization (CIO) handles one-shot inverse problems: fit a
-point estimate, calibrate a radius on held-out decisions, optimize robustly
-over the resulting set. The recipe looks portable to inverse reinforcement
-learning. This paper reports what happens when it is carried over, component
-by component. The conformal rank argument transfers; the score and the
-interpretation of its guarantee require care in IRL's reward geometry.
+**Many rewards can explain the same behavior. Which ones must we account for
+before choosing a policy safely?**
 
-**The score does not survive.** CIO measures a demonstration by an angle
-between reward vectors. That angle depends on coordinates the problem never
-fixes: a feature reparameterization that changes no reward and no demonstrator's
-policy still moves the calibrated angular radius by 24° on average at condition
-number κ = 200. Scoring instead by the spread a reward difference induces over
-achievable policy values restores invariance, keeps the score a linear
-program, and is the pointwise smallest seminorm that bounds worst-case regret.
+Inverse reinforcement learning infers what someone values from their behavior.
+But the same route, for example, could reflect a preference for speed, safety,
+or comfort. A set containing one plausible explanation may still miss the
+reward the person actually uses.
 
-**Intersection needs an identification bridge.** CIO already states an
-intersection guarantee and assumes an inverse-set diameter bound (Assumption 2).
-We adapt that construction to normalized occupancy-span geometry. Which event a quantile certifies is
-decided by which distance to the cone of rewards explaining new behavior gets
-scored. Scoring the *nearest* point certifies intersection with that cone;
-scoring the *farthest* point of the normalized cone certifies containment of
-the demonstrator's own normalized latent reward. The first admits a general LP formulation. At a
-0.80 target we measure the two events at **0.82** and **0.44** on the same
-calibration run.
+Building on conformal prediction, IRL, and conformal inverse optimization (CIO),
+we use held-out behavior to choose the size of a reward set. This paper develops
+a calibration score based on how reward differences affect
+policy values. It then asks what additional bound on reward ambiguity is needed
+to cover the actual reward—and when that coverage supports a policy that is no
+worse than a chosen baseline. CIO already introduces calibration and an
+inverse-set diameter assumption; our contribution adapts these ideas to IRL's
+reward geometry and analyzes their consequences.
 
-**So we price the relaxation.** Given a certified cone width η, the
-calibrated radius q converts into a containment radius `R = min{2, 2q + η}`,
-and `R ≥ 1` gives zero optimal worst-case advantage for this ball-based
-prescription. At `R > 1` every optimizer is feature-equivalent to the reference;
-at `R = 1` other optimizers may tie. This is not an impossibility for all safe
-decision rules. The original audit uses the universal η = 2 and returns the
-reference, losing to the point estimate in every cell of Table 2.
+## The idea in two pictures
 
-**A small post-acceptance diagnostic exercises the certificate.** In a
-one-state, two-feature MDP with 16 actions, exact cone geometry gives
-η = 0.397825 and R = 0.780508, with positive worst-case advantage 0.109746 over
-a fixed uniform reference. A four-action control shows that the enclosing
-ball can be uninformative even when the full feasible cone supports an
-improvement. This is a limited existence example, not a general performance gain.
+![The blue set touches rewards that explain the behavior but misses the star, the actual reward. A bound on ambiguity lets us enlarge the set to cover it.](paper/figures/core_geometry.svg)
 
-## The core idea
+**Read the star first: it is the demonstrator's actual reward.** Every reward in
+the gray region explains the same behavior. The blue set reaches that region,
+yet misses the star. The orange segment puts compatible rewards at a common
+scale. A proven bound on their spread tells us how far to expand the set; the
+green set now covers the star.
 
-**Calibrate in behavior-relevant reward geometry; distinguish intersection from
-containment; use an identification certificate before prescribing safely.**
+![In the exact toy, the best worst-case gain over a baseline decreases as the reward set grows and reaches zero at radius one.](paper/figures/core_prescription.svg)
 
-![Exact reward geometry: the calibrated span ball intersects the feasible cone but misses the latent reward; a certified width expands it to a containing ball.](paper/figures/core_geometry.svg)
+**Covering more rewards makes protection easier, but improvement harder.** We
+compare against a baseline—a policy we could keep using—and choose a policy
+that maximizes its worst-case gain over that baseline across the reward set. When the actual reward is covered, the policy is no worse than
+that baseline. A very large set can leave no provable improvement, making the
+baseline optimal. The curve illustrates one exact small example.
 
-**1–2. From behavior to reward containment.** An observed optimal policy defines a
-feasible reward cone. A split-conformal quantile of the nearest-cone distance
-certifies intersection, not containment of the latent reward. With a certified
-unit-span fiber diameter η, the radius `R = min{2, 2q + η}` gives marginal
-containment at the target level. The plot uses the exact 16-action geometry of
-Appendix D: `w = 2θ/(1−β)` and the span norm is `max_j p_jᵀw`; the balls are
-polygons. Blue: calibrated ball; green: expanded ball.
+<details>
+<summary>Precise guarantee and assumptions</summary>
 
-![Reference-relative robust advantage versus radius in the exact toy: positive at R = 0.781 and zero from R = 1 onward, with the general guarantee and its scope.](paper/figures/core_prescription.svg)
+The nearest-cone LP score calibrates **intersection** with the compatible reward
+set. A certified unit-span diameter η gives the **containment** radius
+`R = min{2, 2q + η}`. Under a shared known MDP, fully observed exact-optimal
+policies, nonnull rewards and center, exchangeable calibration, and a valid width
+bound, the normalized actual reward is covered with marginal probability at
+least γ. That probability averages over calibration samples and a new
+demonstrator; it is not conditional coverage for each person or fitted set.
 
-**3. From containment to a decision certificate.** Maximize worst-case advantage
-over the containment ball relative to a feasible reference policy. Under the
-paper's assumptions—shared known MDP, fully observed exact-optimal policies,
-nonnull rewards and center, exchangeable calibration, and a valid width
-certificate—the resulting decision is no worse than the reference with marginal
-probability at least γ. For this ball prescription, `R < 1` is necessary, not
-sufficient, for positive worst-case advantage. The plotted curve is specific to
-the toy, not a universal performance law; other reward-set shapes can avoid this
-ball's conservatism.
+“Safe” means no worse than the reference in expected discounted reward. It does
+not guarantee that every trajectory avoids harm. For this ball-based rule,
+`R ≥ 1` gives zero optimal worst-case gain; `R < 1` is necessary, not sufficient,
+for a positive gain. At `R > 1` every optimum is feature-equivalent to the
+reference; at `R = 1` other optima may tie.
 
-These two explanatory figures were added after acceptance. They illustrate the
-revised theory and the separately labelled toy; they are not new benchmark
-results. [Vector PDFs](paper/figures/core_geometry.pdf) ·
-[Decision figure PDF](paper/figures/core_prescription.pdf) ·
-[Reproduce with `make overview`](paper/make_core_figures.py) (no experiments).
+The figures use Appendix D's exact 16-action geometry, with coordinates
+`w = 2θ/(1−β)` and span norm `max_j p_jᵀw`. The example-specific decision curve is
+`G(R) = max{0, (1−R)/2}` for a uniform reference. These explanatory figures were
+added after acceptance. [Geometry PDF](paper/figures/core_geometry.pdf) ·
+[Decision PDF](paper/figures/core_prescription.pdf) ·
+[Reproduce with `make overview`](paper/make_core_figures.py).
+
+</details>
+
+## What did we find?
+
+- **Measure reward differences through decisions.** Our score is invariant to
+  feature reparameterization and computable by a linear program. In the original
+  coordinate-change experiment, the angular radius shifts by 24° on average at
+  κ = 200; the span radius changes by at most 2×10⁻⁸.
+- **A plausible explanation need not be the actual reward.** At an 80% target,
+  the original experiment gets about 82% intersection coverage but only 44%
+  coverage of the normalized actual reward at the same radius.
+- **A valid guarantee can still be too conservative.** With the universal
+  ambiguity bound η = 2, the certified rule returns the baseline and loses to
+  the point estimate in all six original comparisons.
+- **An exact small example supports a positive guarantee.** The separately
+  labelled post-acceptance supplement gets η = 0.397825, R = 0.780508 and
+  worst-case gain 0.109746 over a uniform baseline. This demonstrates a useful
+  certificate in one case; it does not establish general performance gains.
 
 ## What's here
 
