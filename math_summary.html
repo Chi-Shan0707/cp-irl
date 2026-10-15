@@ -236,6 +236,7 @@
       </ol>
 
       <h3>1.1 本文建立的逻辑链</h3>
+      <p>（以下符号在第 5–7 节正式定义；此处只给路线。）</p>
       <ol>
         <li>用半范数 \(\Dnorm{\cdot}\) 忽略给所有策略添加同一常数的方向，再用单位跨度归一化消除正比例尺度。</li>
         <li>把“策略 \(\pi\) 在哪些奖励下最优”写成 Bellman 线性不等式组成的锥 \(K(\pi)\)。</li>
@@ -266,7 +267,7 @@
           <tr><td>\(\theta\in\R^d\)</td><td>奖励权重，且 \(r_\theta(s,a)=\phi(s,a)^\top\theta\)。</td></tr>
         </tbody>
       </table>
-      <p>第 \(k\) 位演示者有感知奖励 \(\hat\theta_k\)，并给出最优确定性策略 \(\pi_k=\pi^*(\hat\theta_k)\)。统计单位是<strong>演示者</strong>，不是轨迹中的每个时间步。</p>
+      <p>第 \(k\) 位演示者有潜在（感知）奖励 \(\hat\theta_k\)，并给出最优确定性策略 \(\pi_k=\pi^*(\hat\theta_k)\)。统计单位是<strong>演示者</strong>，不是轨迹中的每个时间步。</p>
 
       <div class="callout limit">
         <div class="title">当前观测假设</div>
@@ -304,6 +305,7 @@
 
       <h3>3.3 回报也是线性的</h3>
       <div class="math-card">\[V_\theta(\mu)=\frac{\theta^\top\Phi^\top\mu}{1-\beta}.\]</div>
+      <p>其中 \(\Phi\in\R^{|S||A|\times d}\) 是按行堆叠 \(\phi(s,a)^\top\) 的特征矩阵。</p>
       <p>\(\Phi^\top\mu\) 是策略的期望特征向量，所以最优策略可由线性规划 \(\max_{\mu\in\M(P)}\theta^\top\Phi^\top\mu\) 求得。</p>
       <p>全文约定：\(V_\theta(\mu)\) 的自变量始终是<strong>占用测度</strong>；写策略时一律写成 \(V_\theta(\mu_\pi)\)，不留歧义。</p>
 
@@ -321,7 +323,7 @@
       <p>那么把 \(v\) 加到奖励上，只会给每个策略价值加同一常数，不改变策略排序。潜势奖励塑形、不可达状态上的某些奖励都可能产生这种方向。</p>
 
       <h3>4.2 正比例缩放也不可识别</h3>
-      <p>对任意 \(c>0\)，\(\theta\) 和 \(c\theta\) 诱导相同的策略排序。因此本文先令 \(\theta^\circ=\theta/\Dnorm{\theta}\)，只比较单位跨度代表元。代码和公式都不需要显式构造商空间，但零距离关系已经隐式完成了识别。</p>
+      <p>对任意 \(c>0\)，\(\theta\) 和 \(c\theta\) 诱导相同的策略排序。因此本文先令 \(\theta^\circ=\theta/\Dnorm{\theta}\)，只比较单位跨度代表元（\(\Dnorm{\cdot}\) 的定义见第 5.1 节）。代码和公式都不需要显式构造商空间，但零距离关系已经隐式完成了识别。</p>
 
       <div class="callout warning">
         <div class="title">两种“行为不变”</div>
@@ -492,7 +494,7 @@
         <div class="title">这一步是现成的，不是本工作的贡献</div>
         <p>下面的分位数取法和覆盖率论证就是 split conformal prediction（Vovk et al. 2005），也正是 CIO 的 Theorem 1–2 所用的同一套论证：CIO 取 \(\{c_k\}\) 的第 \(\lceil\gamma(n+1)\rceil\) 大值，我们取 \(\{s_k\}\) 的第 \(\tau\) 小值，两者只差一个单调变换。顺序决策的结构没有改变这个论证的任何一步。真正需要设计的是它两侧的东西：<strong>校准的是哪一个几何下的距离</strong>（§7.1）和<strong>校准出来的事件到底能推出什么</strong>（§7.4–7.5：相交 ≠ 包含）。</p>
       </div>
-      <p>设校准分数有 \(n\) 个。令 \(\tau=\lceil\gamma(n+1)\rceil\)，取第 \(\tau\) 小分数为 \(q_\gamma\)；若 \(\tau=n+1\)，使用 \(+\infty\) 哨兵。</p>
+      <p>设目标覆盖水平 \(\gamma\in(0,1)\)，校准分数有 \(n\) 个。令 \(\tau=\lceil\gamma(n+1)\rceil\)，取第 \(\tau\) 小分数为 \(q_\gamma\)；若 \(\tau=n+1\)，使用 \(+\infty\) 哨兵。</p>
       <div class="math-card">
         \[
         \P[K(\pi_{\mathrm{new}})\cap B_{q_\gamma}\ne\varnothing]\ge\gamma.
@@ -533,7 +535,7 @@
         \P[\Dnorm{\hat\theta_{\mathrm{new}}^\circ-\bar\theta^\circ}\le R]\ge\gamma.\]
       </div>
       <p>因子 \(2q_\gamma\) 来自两步：先找到离中心不超过 \(q_\gamma\) 的锥内见证，再把见证归一化到单位跨度，至多再移动 \(q_\gamma\)。若 \(q_\gamma\ge1\)，见证可能是零奖励，只能退回通用半径 \(R=2\)。</p>
-      <p>换个角度看：若改用<strong>最大</strong>距离 \(s^{\max}(\pi):=\max_{u\in F^\circ(\pi)}\Dnorm{u-\bar\theta^\circ}\) 作分数，在假设 1 和潜在奖励非零条件下，同一 conformal 论证直接给出包含。一般情形是凸函数在非凸集上的最大化；接收后新增的附录 D 只在一个可解析的两维特例中精确求解它。在假设 2 下逐点有 \(s^{\max}\le 2s+\eta\)，而单调递增变换与次序统计量可交换，故 \(q^{\max}_\gamma\le 2q_\gamma+\eta\)。因此 LP 分数的包含桥需要 \(\eta\) 证书；若能计算精确最大分数，则可绕过该桥：在 \(F^\circ\) 上取最小可去掉因子 2（\(R=\min\{2,q_\gamma+\eta\}\)），取最大则连 \(\eta\) 也可去掉，但两者都非凸。</p>
+      <p>换个角度看：若改用<strong>最大</strong>距离 \(s^{\max}(\pi):=\max_{u\in F^\circ(\pi)}\Dnorm{u-\bar\theta^\circ}\) 作分数，在演示者可交换（论文假设 1）和潜在奖励非零条件下，同一 conformal 论证直接给出包含。一般情形是凸函数在非凸集上的最大化；接收后新增的附录 D 只在一个可解析的两维特例中精确求解它。在 fiber 直径不超过 \(\eta\)（论文假设 2）下逐点有 \(s^{\max}\le 2s+\eta\)，而单调递增变换与次序统计量可交换，故 \(q^{\max}_\gamma\le 2q_\gamma+\eta\)。因此 LP 分数的包含桥需要 \(\eta\) 证书；若能计算精确最大分数，则可绕过该桥：在 \(F^\circ\) 上取最小可去掉因子 2（\(R=\min\{2,q_\gamma+\eta\}\)），取最大则连 \(\eta\) 也可去掉，但两者都非凸。</p>
 
       <div class="callout warning">
         <div class="title">\(\eta\) 不能靠同一条 conformal 定理凭空得到</div>
@@ -567,6 +569,7 @@
         =(\bar\theta^\circ)^\top x-R\,\gamma_{\DF}(x).
         \]
       </div>
+      <p>（\(\gamma_{\DF}\) 是 \(D_F\) 的规范函数（gauge），与覆盖水平 \(\gamma\) 无关。）</p>
       <p>第一项就是 \(V_{\bar\theta^\circ}(\mu)-V_{\bar\theta^\circ}(\mu_{\mathrm{ref}})\)。\(\gamma_{\DF}\) 是 \(\DF\) 的 Minkowski 规范函数，可由两份缩放占用流变量线性表示。\(1-\beta\) 只出现一次，已经包含在 \(x\) 和 \(\DF\) 的定义里，不可省略，也不能再除一次：\(\Dnorm{\cdot}=h_{\DF}\) 正是靠这个因子才等于真实价值差；漏掉或重复它都会让中心项与惩罚项在 \(\beta=0.9\) 时相差 10 倍。</p>
       <p>更重要的是结构上的呼应：校准用 \(\DF\) 的支持函数，鲁棒化用它的极对偶规范函数，两者来自<strong>同一个</strong>占用差分体。</p>
 
@@ -643,7 +646,7 @@
       </ul>
       <div class="callout intuition">
         <div class="title">但不变性本身并不是卖点</div>
-        <p>value-gap 分数<strong>同样</strong>是不变的——它由价值而非坐标算出——而且更低，因为它连 LP 都不需要。但 §10.2 会看到，它换算出来的半径<strong>两个事件都不保证</strong>。所以正确结论不是“跨度半范数 uniquely invariant”，而是：<strong>不变性是必要条件，不是充分条件。</strong></p>
+        <p>value-gap 分数<strong>同样</strong>是不变的——它由价值而非坐标算出——而且在图中数值更低，因为它连 LP 都不需要、没有求解器误差。但 §10.2 会看到，它换算出来的半径<strong>两个事件都不保证</strong>。所以正确结论不是“跨度半范数 uniquely invariant”，而是：<strong>不变性是必要条件，不是充分条件。</strong></p>
       </div>
       <p>所以实验一支持的结论很窄但很强：欧氏角度不是这个 IRL 问题的内在几何；它不支持“新方法的策略一定更好”。</p>
 
@@ -702,7 +705,7 @@
       </div>
 
       <h3>10.7 集中不等式基线</h3>
-      <p>在角度分数上，DKW 界在所有测过的情形下都不比精确 conformal 校准更窄。在 value-gap 分数上，校正后的水平 \(\gamma+\varepsilon\) 在 \(\gamma=0.8\)、\(\delta=0.05\)、\(N\le46\) 时超过 1，所以在本文的校准规模下 DKW 半径是无穷大、什么也不保证；若人为截断为 \(10\|\bar\theta\|_2\)，真实奖励 regret 是点估计的 4–460 倍——这个倍数反映的是截断值，而不是界本身。</p>
+      <p>在角度分数上，DKW 界在所有测过的情形下都不比精确 conformal 校准更窄。在 value-gap 分数上，校正后的水平 \(\gamma+\varepsilon\) 在 \(\gamma=0.8\)、\(\delta=0.05\)、校准样本数 \(n\le46\) 时超过 1，所以在本文的校准规模下 DKW 半径是无穷大、什么也不保证；若人为截断为 \(10\|\bar\theta\|_2\)，真实奖励 regret 是点估计的 4–460 倍——这个倍数反映的是截断值，而不是界本身。</p>
 
       <div class="callout limit">
         <div class="title">这些实验没有证明什么？</div>
