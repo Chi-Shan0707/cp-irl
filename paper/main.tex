@@ -1,8 +1,8 @@
 \documentclass{article}
-% NeurIPS 2026 workshop camera-ready. `sglblindworkshop, final` prints the
-% workshop in the notice line and drops the double-blind masking; swap to
-% `dblblindworkshop` and empty \author{} to rebuild the submitted version.
-\usepackage[sglblindworkshop, final]{neurips_2026}
+% Post-acceptance author revision in the NeurIPS 2026 workshop final format.
+% The workshop reviewed submissions double blind; `final` reveals the author.
+% The exact reviewed source/PDF is preserved as main_full9_revised.tex/.pdf.
+\usepackage[dblblindworkshop, final]{neurips_2026}
 \workshoptitle{Physical Understanding for Decision-Making: Bridging Foundation Models and Reliable Agents}
 
 \usepackage[utf8]{inputenc}
@@ -43,11 +43,6 @@ Conformal Reward Sets for Inverse Reinforcement Learning}
 
 \maketitle
 
-\noindent\textit{Post-acceptance author revision, 6 October 2026.}
-Attribution and scope clarifications, plus the new diagnostic in
-Appendix~\ref{app:exact-toy}, postdate review. The accepted submission is
-preserved separately; \texttt{paper/POST\_ACCEPTANCE\_CHANGES.md} records the changes.
-
 \begin{abstract}
 Inverse reinforcement learning (IRL) returns a reward, and a policy is then
 optimized against it as if it were correct. Conformal inverse optimization
@@ -76,7 +71,13 @@ ball-based prescription, not an impossibility for all decisions from behavior.
 \section{Introduction}
 
 IRL turns observed behavior into a reward estimate, and that estimate is then
-optimized to pick a policy. Uncertainty is dropped exactly where it matters,
+optimized to pick a policy.\footnote{Code: \url{https://github.com/Chi-Shan0707/cp-irl}.
+This author revision (6 October 2026) clarifies attribution and scope and adds
+Appendix~\ref{app:exact-toy} after peer review. The
+\href{https://github.com/Chi-Shan0707/cp-irl/blob/main/paper/main_full9_revised.pdf}{accepted submission}
+and \href{https://github.com/Chi-Shan0707/cp-irl/blob/main/paper/POST_ACCEPTANCE_CHANGES.md}{revision history}
+are available in the repository.}
+Uncertainty is dropped exactly where it matters,
 because two rewards that explain the demonstrations equally well can recommend
 different actions. Conformal inverse optimization \citep{lin2024conformal} is
 an appealing remedy for the analogous one-shot problem: observe a population of

@@ -130,7 +130,7 @@ added after acceptance. [Geometry PDF](paper/figures/core_geometry.pdf) ·
 | File | What it is |
 |---|---|
 | [`paper/main.pdf`](paper/main.pdf) | post-acceptance author revision, built by `make paper` |
-| `paper/main.tex` | dated revised source: `[sglblindworkshop, final]`, named author |
+| `paper/main.tex` | dated revised source: `[dblblindworkshop, final]`, named author |
 | `paper/main_full9_revised.tex` | the submitted double-blind version, unchanged; its PDF is byte-identical to the one on OpenReview |
 | [`paper/ERRATA.md`](paper/ERRATA.md) | September camera-ready corrections and revision history |
 | [`paper/POST_ACCEPTANCE_CHANGES.md`](paper/POST_ACCEPTANCE_CHANGES.md) | October changes, artifact hashes, new experiment and its limits |

@@ -168,3 +168,25 @@ the post-acceptance status of the toy remain visible.
 This is an explanatory edit only: the underlying figure geometry, decision
 curve, experiment results, paper sources and both paper PDFs are unchanged.
 The figures retain automated mathematical and text-overlap checks.
+
+### PDF presentation and links — 26 October 2026
+
+The first-page revision paragraph between the title and abstract has been
+replaced by a footnote in the opening paragraph of the introduction. It retains
+the 6 October revision date and the post-review status of Appendix D, and adds
+clickable public links to the code repository, unchanged accepted PDF, and this
+revision history. Readers of the standalone PDF no longer need to resolve a
+repository-relative path.
+
+The source now uses `[dblblindworkshop, final]`, matching PUDM's double-blind
+review track and the official template's camera-ready example. The local
+`neurips_2026.sty` is byte-identical to the official 2026 download and has not
+been modified. This presentation change does not alter the scientific text,
+results, or accepted artifacts.
+
+Validation: a clean `make paper` build (pdfLaTeX, BibTeX, and two further
+pdfLaTeX passes) produces 16 US Letter pages, with the main text ending on page
+8, within PUDM's 9-page full-paper limit. There are no undefined citations or
+references, BibTeX warnings, or overfull boxes; underfull-box messages remain.
+The rendered first page and all three PDF link targets were checked; each
+target returned HTTP 200. The accepted PDF's SHA-256 remains unchanged.
